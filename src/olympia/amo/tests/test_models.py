@@ -10,9 +10,6 @@ from olympia.addons.models import Addon
 from olympia.users.models import UserProfile
 
 
-pytestmark = pytest.mark.django_db
-
-
 class ManualOrderTest(TestCase):
     fixtures = ('base/addon_3615', 'base/addon_5299_gcal', 'base/addon_40')
 

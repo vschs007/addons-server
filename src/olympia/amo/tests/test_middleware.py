@@ -14,10 +14,8 @@ from olympia.amo.urlresolvers import reverse
 from olympia.zadmin.models import Config
 
 
-pytestmark = pytest.mark.django_db
-
-
-class TestMiddleware(TestCase):
+@pytest.mark.django_db
+class TestMiddleware(object):
 
     def test_no_vary_cookie(self):
         # We don't break good usage of Vary.
@@ -68,6 +66,7 @@ def test_source_with_wrong_unicode_get():
     assert response['Location'].endswith('?source=firefoxsocialmedia%14')
 
 
+@pytest.mark.django_db
 def test_trailing_slash_middleware():
     response = test.Client().get(u'/en-US/about/?xxx=\xc3')
     assert response.status_code == 301

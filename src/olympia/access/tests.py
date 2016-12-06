@@ -11,14 +11,10 @@ from .acl import (action_allowed, check_addon_ownership, check_ownership,
                   check_unlisted_addons_reviewer, is_editor, match_rules)
 
 
-pytestmark = pytest.mark.django_db
-
-
 def test_match_rules():
     """
     Unit tests for the match_rules method.
     """
-
     rules = (
         '*:*',
         'Editors:*,Admin:EditAnyAddon,Admin:flagged,Admin:addons,'

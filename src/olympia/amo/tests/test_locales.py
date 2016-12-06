@@ -1,10 +1,5 @@
 from django.utils.translation import trans_real, activate
 
-import pytest
-
-
-pytestmark = pytest.mark.django_db
-
 
 def test_amo_locale_not_in_django():
     """

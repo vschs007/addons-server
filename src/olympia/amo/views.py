@@ -91,7 +91,7 @@ def handler500(request):
         # Pass over to handler500 view in api if api was targeted.
         return legacy_api.views.handler500(request)
     else:
-        return render(request, 'amo/500.html', status=500)
+        return render(request, 'amo/500.html', status=500, context={})
 
 
 @non_atomic_requests

@@ -25,9 +25,6 @@ from olympia.users.models import UserProfile
 from olympia.versions.models import Version
 
 
-pytestmark = pytest.mark.django_db
-
-
 REVIEW_FILES_STATUSES = (amo.STATUS_PUBLIC, amo.STATUS_DISABLED)
 
 
@@ -722,6 +719,7 @@ def test_page_title_unicode():
     helpers.editor_page_title({'request': request}, title=t)
 
 
+@pytest.mark.django_db
 def test_send_email_autoescape():
     mock_request = Mock()
     mock_request.user = None

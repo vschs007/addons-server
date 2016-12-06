@@ -26,9 +26,6 @@ from olympia.translations.models import (
     PurifiedTranslation, Translation, TranslationSequence)
 
 
-pytestmark = pytest.mark.django_db
-
-
 def ids(qs):
     return [o.id for o in qs]
 

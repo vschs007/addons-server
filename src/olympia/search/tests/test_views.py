@@ -27,9 +27,6 @@ from olympia.versions.compare import (
     num as vnum, version_int as vint, MAXVERSION)
 
 
-pytestmark = pytest.mark.django_db
-
-
 class TestSearchboxTarget(ESTestCaseWithAddons):
 
     def check(self, url, placeholder, cat=None, action=None, q=None):

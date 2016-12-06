@@ -28,9 +28,6 @@ ADDONS_TEST_FILES = os.path.join(
     'devhub', 'tests', 'addons')
 
 
-pytestmark = pytest.mark.django_db
-
-
 def render(s, context=None):
     if context is None:
         context = {}
@@ -506,7 +503,7 @@ def get_addon_file(name):
     return os.path.join(ADDONS_TEST_FILES, name)
 
 
-class TestAnimatedImages(TestCase):
+class TestAnimatedImages(object):
 
     def test_animated_images(self):
         img = ImageCheck(open(get_image_path('animated.png')))
@@ -526,6 +523,7 @@ class TestAnimatedImages(TestCase):
         assert img.is_image()
 
 
+@pytest.mark.django_db
 def test_site_nav():
     r = Mock()
     r.APP = amo.FIREFOX
@@ -574,7 +572,7 @@ def test_inline_css(monkeypatch):
     assert 'background-image: url(/static/img/icons/stars.png);' in s
 
 
-class TestStoragePath(TestCase):
+class TestStoragePath(object):
 
     @override_settings(ADDONS_PATH=None, MEDIA_ROOT="/path/")
     def test_without_settings(self):
@@ -588,7 +586,7 @@ class TestStoragePath(TestCase):
         assert path == '/another/path/'
 
 
-class TestMediaUrl(TestCase):
+class TestMediaUrl(object):
 
     @override_settings(USERPICS_URL=None)
     def test_without_settings(self):
@@ -598,7 +596,7 @@ class TestMediaUrl(TestCase):
         assert url == '/mediapath/userpics/'
 
 
-class TestIdToPath(TestCase):
+class TestIdToPath(object):
 
     def test_with_1_digit(self):
         assert helpers.id_to_path(1) == '1/1/1'

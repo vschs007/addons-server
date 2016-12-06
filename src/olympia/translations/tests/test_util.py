@@ -5,9 +5,6 @@ from olympia.translations.utils import (
     transfield_changed, truncate, truncate_text)
 
 
-pytestmark = pytest.mark.django_db
-
-
 def test_truncate_text():
     assert truncate_text('foobar', 5) == ('fooba...', 0)
     assert truncate_text('foobar', 5, True) == ('fooba...', 0)
@@ -30,6 +27,7 @@ def test_truncate():
         '<p>one</p><ol><li>two</li><li>three</li></ol>foxxx')
 
 
+@pytest.mark.django_db
 def test_transfield_changed():
     initial = {
         'some_field': 'some_val',

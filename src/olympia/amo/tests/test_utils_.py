@@ -15,9 +15,6 @@ from olympia.addons.models import Addon
 from olympia.versions.models import Version
 
 
-pytestmark = pytest.mark.django_db
-
-
 class TestAttachTransDict(TestCase):
     """
     Tests for attach_trans_dict. For convenience, we re-use Addon model instead

@@ -13,9 +13,6 @@ from olympia.translations.models import PurifiedTranslation
 from olympia.translations.tests.testapp.models import TranslatedModel
 
 
-pytestmark = pytest.mark.django_db
-
-
 def super():
     jingo.load_helpers()
 

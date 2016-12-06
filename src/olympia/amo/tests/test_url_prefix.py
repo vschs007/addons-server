@@ -11,10 +11,7 @@ from olympia.amo.middleware import LocaleAndAppURLMiddleware
 from olympia.amo.tests import BaseTestCase
 
 
-pytestmark = pytest.mark.django_db
-
-
-class MiddlewareTest(BaseTestCase):
+class MiddlewareTest(object):
     """Tests that the locale and app redirection work properly."""
 
     def setUp(self):

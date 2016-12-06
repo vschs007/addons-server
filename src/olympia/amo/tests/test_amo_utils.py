@@ -20,8 +20,6 @@ from olympia.amo.utils import (
     to_language)
 
 
-pytestmark = pytest.mark.django_db
-
 u = u'Ελληνικά'
 
 
