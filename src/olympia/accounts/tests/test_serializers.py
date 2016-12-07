@@ -1,9 +1,9 @@
-from olympia.amo.tests import BaseTestCase
+from olympia.amo.tests import TestCase
 from olympia.accounts.serializers import UserProfileSerializer
 from olympia.users.models import UserProfile
 
 
-class TestAccountSerializer(BaseTestCase):
+class TestAccountSerializer(TestCase):
 
     def setUp(self):
         self.user = UserProfile.objects.create(email='a@m.o')
