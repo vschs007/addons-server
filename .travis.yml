@@ -35,7 +35,7 @@ addons:
 
 before_install:
   - scripts/travis_es.sh
-  - /tmp/elasticsearch/elasticsearch-5.1.1/bin/elasticsearch -d -E path.data=/tmp -E index.store.type=mmapfs -E
+  - /tmp/elasticsearch/elasticsearch-5.1.1/bin/elasticsearch -d -E path.data=/tmp -E index.store.type=mmapfs
 
 install:
   - nvm current
