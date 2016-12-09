@@ -145,12 +145,12 @@ easy-thumbnails==2.3 \
     --hash=sha256:5ae57f086026dbfe4aa59e9bc80bcae1ae6daca63dec02a2d510c3ab098f0de2 \
     --hash=sha256:d6113cf1e1ece85216ab8cd62c352da21853c9ef31341161d904801d347d7aee
 # elasticsearch is required by elasticsearch-dsl
-elasticsearch==2.4.0 \
-    --hash=sha256:ede15c3573f46ea72c4d53ea7f11fe648c60d167d75d739e27f72d78a6d7f692 \
-    --hash=sha256:e71dd7058b940f409068d8d5df2354dc4367436947a28e0e03d35d5c0508c310
-elasticsearch-dsl==2.2.0 \
-    --hash=sha256:99bbb4dcbcfb5db4f57499237f24acf1397543e895e99994a09af2a6fbef93bc \
-    --hash=sha256:c8132c6e1bdfc5c345999d3949dd53a53b59ea73e2ee005f695de78be0552ceb
+elasticsearch==5.0.1 \
+    --hash=sha256:0454bb57323c10535570042c5cb2246fbdacd286ef4a537cf82e873982a36293 \
+    --hash=sha256:bebb51b1bc312f2a305b49a2c0900bbfcbdfd9f23e93ff1fc05f4132f2a3d1ed
+elasticsearch-dsl==5.0.0 \
+    --hash=sha256:e686337a4094cc0e9241c616090e86b47e96462e43fe9ecc543025a2cfc9ae7d \
+    --hash=sha256:9ad78dda39e22dcfa16541a447bf7eda57c4766bfed772d86a7b3b6a9e542250
 email-reply-parser==0.3.0 \
     --hash=sha256:83cd931e40b5dbef0a69462d9392d71610afbae729a135706f09255f78c08043
 # enum34 is required by cryptography
