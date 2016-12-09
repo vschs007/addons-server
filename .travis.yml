@@ -4,9 +4,6 @@ sudo: false
 python:
   - "2.7"
 
-jdk:
-  - oraclejdk8
-
 env:
   - TOXENV=flake8
   - TOXENV=docs
@@ -35,6 +32,7 @@ addons:
   apt:
     packages:
       - swig
+      - oracle-java8-installer
 
 before_install:
   - scripts/travis_es.sh
