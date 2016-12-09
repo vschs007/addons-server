@@ -843,7 +843,8 @@ class ESTestCase(TestCase):
             raise
 
         aliases_and_indexes = set(settings.ES_INDEXES.values() +
-                                  cls.es.indices.get_aliases().keys())
+                                  cls.es.indices.get_alias().keys())
+
         for key in aliases_and_indexes:
             if key.startswith('test_amo'):
                 cls.es.indices.delete(key, ignore=[404])

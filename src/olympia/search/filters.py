@@ -1,7 +1,6 @@
 from django.utils import translation
 
 from elasticsearch_dsl import Q, query
-from elasticsearch_dsl.filter import Bool
 from rest_framework.filters import BaseFilterBackend
 
 from olympia import amo
@@ -209,7 +208,7 @@ class SearchQueryFilter(BaseFilterBackend):
                                  'type': 'phrase'}),
             query.Match(description={'query': search_query, 'boost': 0.3,
                                      'type': 'phrase'}),
-            query.Match(tags={'query': search_query.split(), 'boost': 0.1}),
+#            query.Match(tags={'query': search_query.split(), 'boost': 0.1}),
         ]
 
         # For description and summary, also search in translated field with the
@@ -272,7 +271,7 @@ class SearchParameterFilter(BaseFilterBackend):
             except ValueError:
                 continue
 
-        return qs.filter(Bool(must=must)) if must else qs
+        return qs.query(query.Bool(must=must)) if must else qs
 
 
 class InternalSearchParameterFilter(SearchParameterFilter):
@@ -293,11 +292,12 @@ class ReviewedContentFilter(BaseFilterBackend):
     disabled.
     """
     def filter_queryset(self, request, qs, view):
-        return qs.filter(
-            Bool(must=[Q('terms', status=amo.REVIEWED_STATUSES),
-                       Q('exists', field='current_version')],
-                 must_not=[Q('term', is_deleted=True),
-                           Q('term', is_disabled=True)]))
+        return qs.query(
+            query.Bool(
+                must=[Q('terms', status=amo.REVIEWED_STATUSES),
+                      Q('exists', field='current_version')],
+                must_not=[Q('term', is_deleted=True),
+                          Q('term', is_disabled=True)]))
 
 
 class SortingFilter(BaseFilterBackend):
