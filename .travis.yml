@@ -4,6 +4,9 @@ sudo: false
 python:
   - "2.7"
 
+jdk:
+  - oraclejdk8
+
 env:
   - TOXENV=flake8
   - TOXENV=docs
@@ -33,7 +36,6 @@ addons:
     packages:
       - swig
       - oracle-java8-installer
-      - oracle-java8-set-default
 
 before_install:
   - scripts/travis_es.sh
@@ -49,8 +51,8 @@ install:
 before_script:
   - mysql -e 'create database olympia;'
   - node --version
+  - java -version
   - /tmp/elasticsearch/elasticsearch-5.1.1/bin/elasticsearch --version
-  - sleep 10
 
 script:
   - coverage erase
