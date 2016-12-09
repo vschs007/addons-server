@@ -5,6 +5,9 @@ python:
   - "2.7"
 
 env:
+  global:
+    - JAVA_HOME=/usr/lib/jvm/java-8-oracle
+  matrix:
   - TOXENV=flake8
   - TOXENV=docs
   - TOXENV=assets
@@ -49,7 +52,7 @@ before_script:
   - mysql -e 'create database olympia;'
   - node --version
   - java -version
-  - JAVA_HOME=/usr/lib/jvm/java-8-oracle /tmp/elasticsearch/elasticsearch-5.1.1/bin/elasticsearch --version
+  - /tmp/elasticsearch/elasticsearch-5.1.1/bin/elasticsearch --version
 
 script:
   - coverage erase
