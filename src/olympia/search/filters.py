@@ -1,6 +1,6 @@
 from django.utils import translation
 
-from elasticsearch_dsl import F, query
+from elasticsearch_dsl import Q, query
 from elasticsearch_dsl.filter import Bool
 from rest_framework.filters import BaseFilterBackend
 
@@ -52,7 +52,7 @@ class AddonFilterParam(object):
         return self.get_object_from_reverse_dict().id
 
     def get_es_filter(self):
-        return [F(self.operator, **{self.es_field: self.get_value()})]
+        return [Q(self.operator, **{self.es_field: self.get_value()})]
 
 
 class AddonAppFilterParam(AddonFilterParam):
@@ -88,9 +88,9 @@ class AddonAppVersionFilterParam(AddonFilterParam):
     def get_es_filter(self):
         app_id, low, high = self.get_values()
         return [
-            F('range', **{'current_version.compatible_apps.%d.min' % app_id:
+            Q('range', **{'current_version.compatible_apps.%d.min' % app_id:
               {'lte': low}}),
-            F('range', **{'current_version.compatible_apps.%d.max' % app_id:
+            Q('range', **{'current_version.compatible_apps.%d.max' % app_id:
               {'gte': high}}),
         ]
 
@@ -294,10 +294,10 @@ class ReviewedContentFilter(BaseFilterBackend):
     """
     def filter_queryset(self, request, qs, view):
         return qs.filter(
-            Bool(must=[F('terms', status=amo.REVIEWED_STATUSES),
-                       F('exists', field='current_version')],
-                 must_not=[F('term', is_deleted=True),
-                           F('term', is_disabled=True)]))
+            Bool(must=[Q('terms', status=amo.REVIEWED_STATUSES),
+                       Q('exists', field='current_version')],
+                 must_not=[Q('term', is_deleted=True),
+                           Q('term', is_disabled=True)]))
 
 
 class SortingFilter(BaseFilterBackend):
