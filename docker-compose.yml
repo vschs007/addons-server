@@ -47,7 +47,7 @@ mysqld:
     - MYSQL_DATABASE=olympia
 
 elasticsearch:
-  image: elasticsearch:1.6
+  image: elasticsearch:5.1
 
 redis:
   image: redis:2.8
