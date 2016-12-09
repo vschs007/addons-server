@@ -33,6 +33,7 @@ addons:
     packages:
       - swig
       - oracle-java8-installer
+      - oracle-java8-set-default
 
 before_install:
   - scripts/travis_es.sh
