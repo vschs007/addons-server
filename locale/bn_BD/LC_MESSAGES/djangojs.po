@@ -3,9 +3,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2016-12-01 06:45+0000\n"
-"PO-Revision-Date: 2016-10-30 22:41+0000\n"
-"Last-Translator: S M Sarwar Nobin <smsarwar1996@gmail.com>\n"
+"POT-Creation-Date: 2017-04-03 05:29+0000\n"
+"PO-Revision-Date: 2017-02-25 23:56+0000\n"
+"Last-Translator: Mahay Alam Khan <mahayalamkhan@gmail.com>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "Language: bn_BD\n"
 "MIME-Version: 1.0\n"
@@ -58,7 +58,7 @@ msgstr "{0} তে ত্রুটি"
 
 #: static/js/common/upload-addon.js
 msgid "We have enabled a new linter to process your Add-on. Please make sure to report any issues on GitHub"
-msgstr ""
+msgstr "আপনার অ্যাডঅন্সটি প্রক্রিয়াজাত করার জন্য আমরা একটি নতুন লিন্টার চালু করেছি। দয়া করে GitHub এ যেকোন রিপোর্ট ইস্যু করুন"
 
 #: static/js/common/upload-addon.js
 msgid "Your add-on failed validation with {0} error."
@@ -95,7 +95,7 @@ msgstr "বৈধতা যাচাইকরণ শেষ {0}"
 
 #: static/js/common/upload-addon.js
 msgid "Your add-on validation timed out, it will be manually reviewed."
-msgstr ""
+msgstr "আপনার অ্যাড অন বৈধতা সময় শেষ হয়েছে, এটা স্বয়ংক্রিয় ভাবে পর্যালোচনা করা হবে।"
 
 #: static/js/common/upload-addon.js
 msgid "Your add-on was validated with no errors and {0} warning."
@@ -111,11 +111,11 @@ msgstr[1] ""
 
 #: static/js/common/upload-addon.js
 msgid "Your add-on was validated with no errors or warnings."
-msgstr ""
+msgstr "আপনার অ্যাডঅন্সটি সমর্থিত হয়েছে কোনপ্রকার ভুল অথবা সাবধানবাণী ছাড়াই।"
 
 #: static/js/common/upload-addon.js
 msgid "Your submission will be automatically signed."
-msgstr ""
+msgstr "আপনার জমা স্বয়ংক্রিয়ভাবে স্বাক্ষরিত হবে।"
 
 #: static/js/common/upload-addon.js
 msgid "WebExtension upgrade"
@@ -139,11 +139,11 @@ msgstr ""
 
 #: static/js/common/upload-addon.js
 msgid "Add-on submission checklist"
-msgstr ""
+msgstr "অ্যাড-অন জমা দেওয়ার চেকলিস্ট"
 
 #: static/js/common/upload-addon.js
 msgid "Please verify the following points before finalizing your submission. This will minimize delays or misunderstanding during the review process:"
-msgstr ""
+msgstr "আপনার জমা চূড়ান্ত করার আগে নিচের বিষয়গুলো যাচাই করুন। এই পর্যালোচনা প্রক্রিয়া চলাকালীন সময় বিলম্ব বা বিভ্রান্তি হ্রাস করা হবে:"
 
 #: static/js/common/upload-addon.js
 msgid ""
@@ -153,7 +153,7 @@ msgstr ""
 
 #: static/js/common/upload-addon.js
 msgid "The validation process found these issues that can lead to rejections:"
-msgstr ""
+msgstr "ভ্যালিডেশন প্রসেসে এইসব সমস্যা পাওয়া গেছে যার কারণে বাতিল হতে পারে:"
 
 #: static/js/common/upload-addon.js
 msgid "Sorry, no supported platform has been found."
@@ -161,7 +161,7 @@ msgstr "দুঃখিত, কোন সাহায্যকারী প্�
 
 #: static/js/common/upload-base.js
 msgid "The filetype you uploaded isn't recognized."
-msgstr ""
+msgstr "আপনার আপলোড করা ফাইলটির ফাইলটাইপটি স্বীকৃত নয়।"
 
 #: static/js/common/upload-base.js
 msgid "You cancelled the upload."
@@ -169,11 +169,11 @@ msgstr "আপনি আপলোড বাতিল করেছেন।"
 
 #: static/js/common/upload-image.js static/js/impala/users.js
 msgid "Images must be either PNG or JPG."
-msgstr ""
+msgstr "চিত্রগুলি অবশ্যই PNG বা JPG হতে হবে।"
 
 #: static/js/common/upload-image.js
 msgid "Videos must be in WebM."
-msgstr ""
+msgstr "ভিডিও গুলো অবশ্যই WebM তে হতে হবে।"
 
 #: static/js/impala/collections.js static/js/zamboni/collections.js
 msgid "Follow this Collection"
@@ -190,7 +190,7 @@ msgstr "ফলো করুন"
 #. L10n: {0} is an app name.
 #: static/js/impala/listing.js static/js/zamboni/themes.js
 msgid "This theme is incompatible with your version of {0}"
-msgstr ""
+msgstr "এই থিমটি আপনার সংস্করণ {0} এর সাথে সামঞ্জস্যপূর্ণ নয়"
 
 #: static/js/impala/persona_creation.js
 msgid "All Rights Reserved"
@@ -198,27 +198,27 @@ msgstr "সর্বসত্ত্ব সংরক্ষিত"
 
 #: static/js/impala/persona_creation.js
 msgid "Creative Commons Attribution 3.0"
-msgstr ""
+msgstr "ক্রিয়েটিভ কমন্স অ্যাট্রিবিউশন 3.0"
 
 #: static/js/impala/persona_creation.js
 msgid "Creative Commons Attribution-NonCommercial 3.0"
-msgstr ""
+msgstr "ক্রিয়েটিভ কমন্স অ্যাট্রিবিউশন-NonCommercial 3.0"
 
 #: static/js/impala/persona_creation.js
 msgid "Creative Commons Attribution-NonCommercial-NoDerivs 3.0"
-msgstr ""
+msgstr "ক্রিয়েটিভ কমন্স অ্যাট্রিবিউশন-NonCommercial-NoDerivs 3.0"
 
 #: static/js/impala/persona_creation.js
 msgid "Creative Commons Attribution-NonCommercial-Share Alike 3.0"
-msgstr ""
+msgstr "ক্রিয়েটিভ কমন্স অ্যাট্রিবিউশন-NonCommercial-Share Alike 3.0"
 
 #: static/js/impala/persona_creation.js
 msgid "Creative Commons Attribution-NoDerivs 3.0"
-msgstr ""
+msgstr "ক্রিয়েটিভ কমন্স অ্যাট্রিবিউশন-NoDerivs 3.0"
 
 #: static/js/impala/persona_creation.js
 msgid "Creative Commons Attribution-ShareAlike 3.0"
-msgstr ""
+msgstr "ক্রিয়েটিভ কমন্স অ্যাট্রিবিউশন-ShareAlike 3.0"
 
 #: static/js/impala/persona_creation.js
 msgid "Your Theme's Name"
@@ -226,7 +226,7 @@ msgstr "আপনারা থিমের নাম"
 
 #: static/js/impala/reviews.js static/js/zamboni/reviews.js
 msgid "Flagged for review"
-msgstr ""
+msgstr "পর্যালোচনার জন্য চিহ্নিত"
 
 #: static/js/impala/reviews.js static/js/zamboni/reviews.js
 msgid "Your input is required"
@@ -234,19 +234,19 @@ msgstr "আপনার ইনপুট দরকার"
 
 #: static/js/impala/reviews.js static/js/zamboni/reviews.js
 msgid "Marked for deletion"
-msgstr ""
+msgstr "মুছে ফেলার জন্য চিহ্নিত করা হয়েছে"
 
 #: static/js/impala/search.js
 msgid "Updating results&hellip;"
-msgstr ""
+msgstr "ফলাফল আপডেট করা হচ্ছে &hellip;"
 
 #: static/js/impala/site_suggestions.js
 msgid "Category"
-msgstr "তালিকা"
+msgstr "ক্যাটাগরি"
 
 #: static/js/impala/suggestions.js
 msgid "Search themes for <b>{0}</b>"
-msgstr ""
+msgstr "<b>{0}</b>এর জন্য বিষয়বস্তু খুঁজুন"
 
 #: static/js/impala/suggestions.js
 msgid "Search apps for <b>{0}</b>"
@@ -262,7 +262,7 @@ msgstr "আসল ব্যবহার করুন"
 
 #: static/js/impala/stats/chart.js
 msgid "Week of {0}"
-msgstr ""
+msgstr "সপ্তাহের {0}"
 
 #: static/js/impala/stats/chart.js
 msgid " downloads"
@@ -327,15 +327,15 @@ msgstr "সংগ্রহ তৈরি করা হয়েছে"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Add-ons in Use"
-msgstr ""
+msgstr "ব্যবহৃত হচ্ছে এমন এডঅনস"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Add-ons Created"
-msgstr ""
+msgstr "এড-অনস তৈরি করা হয়েছে"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Add-ons Downloaded"
-msgstr ""
+msgstr "এড-অনস ডাউনলোড করা হয়েছে"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Add-ons Updated"
@@ -343,7 +343,7 @@ msgstr "এড-অনস আপডেটে করা হয়েছে"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Reviews Written"
-msgstr ""
+msgstr "পর্যালোচনা লিখেছেন"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "User Signups"
@@ -387,7 +387,7 @@ msgstr "এড-অনস ম্যানেজার সম্বন্ধে �
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Search Suggestions"
-msgstr ""
+msgstr "অনুসন্ধান প্রস্তাবনা"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Search Results"
@@ -399,15 +399,15 @@ msgstr "হোমপেজ প্রেমো"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Homepage Featured"
-msgstr ""
+msgstr "হোমপেজ বৈশিষ্ট্যযুক্ত করা হয়েছে"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Homepage Up and Coming"
-msgstr ""
+msgstr "হোমপেইজ আসন্ন"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Homepage Most Popular"
-msgstr ""
+msgstr "সবচেয়ে জনপ্রিয় হোমপেইজ"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Detail Page"
@@ -415,19 +415,19 @@ msgstr "পেজ এর বিস্তারিত"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Detail Page (bottom)"
-msgstr ""
+msgstr "বিস্তারিত পৃষ্ঠা (নিচে)"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Detail Page (Development Channel)"
-msgstr ""
+msgstr "বিস্তারিত পৃষ্ঠায় (অগ্রগতি চ্যানেল)"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Often Used With"
-msgstr ""
+msgstr "প্রায়ই ব্যবহার"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Others By Author"
-msgstr ""
+msgstr "অন্যদের কাছে লেখক"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Dependencies"
@@ -507,7 +507,7 @@ msgstr ""
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Browse Listing Up and Coming Sort"
-msgstr ""
+msgstr "Listing Up এবং Coming Sort ব্রাউজ করুন"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Total Amount Contributed"
@@ -587,7 +587,7 @@ msgstr ""
 #. L10n: both {0} and {1} are dates in YYYY-MM-DD format.
 #: static/js/impala/stats/csv_keys.js
 msgid "Daily Users from {0} to {1}"
-msgstr ""
+msgstr "দৈনিক ব্যবহারকারী {0} থেকে {1}"
 
 #. L10n: {0} is an integer.
 #: static/js/impala/stats/csv_keys.js
@@ -597,7 +597,7 @@ msgstr ""
 #. L10n: both {0} and {1} are dates in YYYY-MM-DD format.
 #: static/js/impala/stats/csv_keys.js
 msgid "Applications from {0} to {1}"
-msgstr ""
+msgstr "আবেদন সমুহ {0} থেকে {1}"
 
 #. L10n: {0} is an integer.
 #: static/js/impala/stats/csv_keys.js
@@ -652,7 +652,7 @@ msgstr ""
 #. L10n: {0} is an integer.
 #: static/js/impala/stats/csv_keys.js
 msgid "Contributions, last {0} days"
-msgstr ""
+msgstr "শেষ {0} দিনে অবদান"
 
 #. L10n: both {0} and {1} are dates in YYYY-MM-DD format.
 #: static/js/impala/stats/csv_keys.js
@@ -787,7 +787,7 @@ msgstr ""
 #. L10n: {0} is an integer and {1} and {2} are dates in YYYY-MM-DD format.
 #: static/js/impala/stats/csv_keys.js
 msgid "<b>{0}</b> from {1} to {2}"
-msgstr ""
+msgstr "<b>{0}</b> হতে {1} থেকে {2}"
 
 #. L10n: {0} and {1} are integers.
 #: static/js/impala/stats/csv_keys.js
@@ -1049,18 +1049,6 @@ msgstr ""
 msgid "Number of Reviews"
 msgstr ""
 
-#: static/js/zamboni/editors.js
-msgid "Error loading translation"
-msgstr ""
-
-#: static/js/zamboni/files.js static/js/zamboni/validator.js
-msgid "Ignore this message in future updates"
-msgstr ""
-
-#: static/js/zamboni/files.js static/js/zamboni/validator.js
-msgid "Severity for automated signing:"
-msgstr ""
-
 #: static/js/zamboni/global.js
 msgid "Loading..."
 msgstr "লোডিং..."
@@ -1147,10 +1135,6 @@ msgid "Warning"
 msgstr "সর্তকবার্তা"
 
 #: static/js/zamboni/validator.js
-msgid "Suggestions for passing automated signing:"
-msgstr ""
-
-#: static/js/zamboni/validator.js
 msgid "{0} line {1} column {2}"
 msgstr ""
 
@@ -1222,7 +1206,7 @@ msgstr "পরীক্ষামূলক"
 
 #: static/js/zamboni/mobile/buttons.js
 msgid "Themes Require Newer Version of {0}"
-msgstr ""
+msgstr "থিমটির জন্য {0} এর নতুন ভার্সন প্রয়োজন"
 
 #: static/js/zamboni/mobile/buttons.js
 msgid "Themes Require {0}"

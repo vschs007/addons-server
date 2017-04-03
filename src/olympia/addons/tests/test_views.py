@@ -22,10 +22,11 @@ from olympia.amo.urlresolvers import reverse
 from olympia.addons.utils import generate_addon_guid
 from olympia.abuse.models import AbuseReport
 from olympia.addons.models import (
-    Addon, AddonCategory, AddonDependency, AddonFeatureCompatibility,
-    AddonUser, Category, Charity, Persona)
+    Addon, AddonDependency, AddonFeatureCompatibility, AddonUser, Category,
+    Charity, Persona)
 from olympia.bandwagon.models import Collection
 from olympia.constants.categories import CATEGORIES
+from olympia.files.models import WebextPermission, WebextPermissionDescription
 from olympia.paypal.tests.test import other_error
 from olympia.stats.models import Contribution
 from olympia.users.helpers import users_list
@@ -368,6 +369,22 @@ class TestDeveloperPages(TestCase):
                 'addons/addon_228106_info+dev+bio.json',
                 'addons/addon_228107_multiple-devs.json']
 
+    def test_paypal_js_is_present_if_contributions_are_enabled(self):
+        self.addon = Addon.objects.get(id=592)
+        assert self.addon.takes_contributions
+        response = self.client.get(reverse('addons.meet', args=['a592']))
+        assert response.status_code == 200
+        doc = pq(response.content)
+        assert doc('script[src="%s"]' % settings.PAYPAL_JS_URL)
+
+    def test_paypal_js_is_absent_if_contributions_are_disabled(self):
+        self.addon = Addon.objects.get(pk=3615)
+        assert not self.addon.takes_contributions
+        response = self.client.get(reverse('addons.meet', args=['a3615']))
+        assert response.status_code == 200
+        doc = pq(response.content)
+        assert not doc('script[src="%s"]' % settings.PAYPAL_JS_URL)
+
     def test_meet_the_dev_title(self):
         r = self.client.get(reverse('addons.meet', args=['a592']))
         title = pq(r.content)('title').text()
@@ -482,6 +499,13 @@ class TestLicensePage(TestCase):
 
     def test_no_version(self):
         self.addon.versions.all().delete()
+        url = reverse('addons.license', args=['a3615'])
+        r = self.client.get(url)
+        assert r.status_code == 404
+
+    def test_unlisted_version(self):
+        self.version.update(channel=amo.RELEASE_CHANNEL_UNLISTED)
+        assert self.version.license
         url = reverse('addons.license', args=['a3615'])
         r = self.client.get(url)
         assert r.status_code == 404
@@ -710,6 +734,114 @@ class TestDetailPage(TestCase):
         privacy_url = reverse('addons.privacy', args=[self.addon.slug])
         assert doc('.privacy-policy').attr('href').endswith(privacy_url)
 
+    @override_switch('webext-permissions', active=False)
+    def test_permissions_not_shown_without_waffle(self):
+        response = self.client.get(self.url)
+        doc = pq(response.content)
+        assert doc('a.webext-permissions').length == 0
+        assert doc('#webext-permissions').length == 0
+
+    @override_switch('webext-permissions', active=True)
+    def test_permissions_webext(self):
+        file_ = self.addon.current_version.all_files[0]
+        file_.update(is_webextension=True)
+        WebextPermission.objects.create(file=file_, permissions=[
+            u'http://*/*', u'<all_urls>', u'bookmarks', u'nativeMessaging',
+            u'made up permission'])
+        WebextPermissionDescription.objects.create(
+            name=u'bookmarks', description=u'Read and modify bookmarks')
+        WebextPermissionDescription.objects.create(
+            name=u'nativeMessaging',
+            description=u'Exchange messages with programs other than Firefox')
+
+        response = self.client.get(self.url)
+        doc = pq(response.content)
+        # The link next to the button
+        assert doc('a.webext-permissions').length == 1
+        # And the model dialog
+        assert doc('#webext-permissions').length == 1
+        assert u'perform certain functions (example: a tab management' in (
+            doc('#webext-permissions div.prose').text())
+        assert doc('ul.webext-permissions-list').length == 1
+        assert doc('li.webext-permissions-list').length == 3
+        # See File.webext_permissions for the order logic
+        assert doc('li.webext-permissions-list').text() == (
+            u'Access your data for all websites '
+            u'Exchange messages with programs other than Firefox '
+            u'Read and modify bookmarks')
+
+    @override_switch('webext-permissions', active=True)
+    def test_permissions_webext_no_permissions(self):
+        file_ = self.addon.current_version.all_files[0]
+        file_.update(is_webextension=True)
+        assert file_.webext_permissions_list == []
+        response = self.client.get(self.url)
+        doc = pq(response.content)
+        # Don't show the link when no permissions.
+        assert doc('a.webext-permissions').length == 0
+        # And no model dialog
+        assert doc('#webext-permissions').length == 0
+
+    @override_switch('webext-permissions', active=True)
+    def test_permissions_non_webext(self):
+        file_ = self.addon.current_version.all_files[0]
+        file_.update(is_webextension=False)
+        response = self.client.get(self.url)
+        doc = pq(response.content)
+        # The link next to the button
+        assert doc('a.webext-permissions').length == 1
+        # danger danger icon shown for oldie xul addons
+        assert doc('a.webext-permissions img').length == 1
+        # And the model dialog
+        assert doc('#webext-permissions').length == 1
+        assert u'Please note this add-on uses legacy technology' in (
+            doc('#webext-permissions div.prose').text())
+        assert doc('.webext-permissions-list').length == 0
+
+    @override_switch('webext-permissions', active=True)
+    def test_permissions_non_extension(self):
+        self.addon.update(type=amo.ADDON_THEME)
+        file_ = self.addon.current_version.all_files[0]
+        assert not file_.is_webextension
+        response = self.client.get(self.url)
+        doc = pq(response.content)
+        # Don't show the link for non-extensions
+        assert doc('a.webext-permissions').length == 0
+        # And no model dialog
+        assert doc('#webext-permissions').length == 0
+
+    @override_switch('webext-permissions', active=True)
+    def test_permissions_xss_single_url(self):
+        file_ = self.addon.current_version.all_files[0]
+        file_.update(is_webextension=True)
+        WebextPermission.objects.create(file=file_, permissions=[
+            u'<script>alert("//")</script>'])
+        response = self.client.get(self.url)
+        doc = pq(response.content)
+        assert doc('li.webext-permissions-list').text() == (
+            u'Access your data for '
+            u'<script>alert("//")</script>')
+        assert '<script>alert(' not in response.content
+        assert '&lt;script&gt;alert(' in response.content
+
+    @override_switch('webext-permissions', active=True)
+    def test_permissions_xss_multiple_url(self):
+        file_ = self.addon.current_version.all_files[0]
+        file_.update(is_webextension=True)
+        WebextPermission.objects.create(file=file_, permissions=[
+            '<script>alert("//")</script>',
+            '<script>foo("https://")</script>'])
+        response = self.client.get(self.url)
+        doc = pq(response.content)
+        assert doc('li.webext-permissions-list').text() == (
+            u'Access your data on the following websites: '
+            u'<script>alert("//")</script> '
+            u'<script>foo("https://")</script>')
+        assert '<script>alert(' not in response.content
+        assert '<script>foo(' not in response.content
+        assert '&lt;script&gt;alert(' in response.content
+        assert '&lt;script&gt;foo(' in response.content
+
     def test_simple_html_is_rendered_in_privacy(self):
         self.addon.privacy_policy = """
             <strong> what the hell..</strong>
@@ -903,14 +1035,14 @@ class TestDetailPage(TestCase):
         assert pq(content)('.manage-button a').eq(0).attr('href') == (
             self.addon.get_dev_url())
 
-        # reviewer gets a 'Editor Review' button
+        # reviewer gets an 'Add-on Review' button
         self.client.login(email='editor@mozilla.com')
         content = get_detail().content
         assert pq(content)('.manage-button').length == 1
         assert pq(content)('.manage-button a').eq(0).attr('href') == (
             reverse('editors.review', args=[self.addon.slug]))
 
-        # admins gets devhub, editor review and 'Admin Manage' button too
+        # admins gets devhub, 'Add-on Review' and 'Admin Manage' button too
         self.client.login(email='admin@mozilla.com')
         content = get_detail().content
         assert pq(content)('.manage-button').length == 3
@@ -1087,6 +1219,16 @@ class TestImpalaDetailPage(TestCase):
                     for c in self.addon.categories.filter(
                         application=amo.FIREFOX.id)]
         amo.tests.check_links(expected, links)
+
+    def test_paypal_js_is_present_if_contributions_are_enabled(self):
+        self.addon = Addon.objects.get(id=592)
+        assert self.addon.takes_contributions
+        self.url = self.addon.get_url_path()
+        assert self.get_pq()('script[src="%s"]' % settings.PAYPAL_JS_URL)
+
+    def test_paypal_js_is_absent_if_contributions_are_disabled(self):
+        assert not self.addon.takes_contributions
+        assert not self.get_pq()('script[src="%s"]' % settings.PAYPAL_JS_URL)
 
 
 class TestPersonas(object):
@@ -1574,11 +1716,6 @@ class AddonAndVersionViewSetDetailMixin(object):
     def _set_tested_url(self, param):
         raise NotImplementedError
 
-    def _make_unlisted(self):
-        self.addon.update(is_listed=False)
-        for version in self.addon.versions.all():
-            version.update(channel=amo.RELEASE_CHANNEL_UNLISTED)
-
     def test_get_by_id(self):
         self._test_url()
 
@@ -1643,13 +1780,13 @@ class AddonAndVersionViewSetDetailMixin(object):
         assert response.status_code == 401
 
     def test_get_not_listed(self):
-        self._make_unlisted()
+        self.make_addon_unlisted(self.addon)
         response = self.client.get(self.url)
         assert response.status_code == 401
 
     def test_get_not_listed_no_rights(self):
         user = UserProfile.objects.create(username='simpleuser')
-        self._make_unlisted()
+        self.make_addon_unlisted(self.addon)
         self.client.login_api(user)
         response = self.client.get(self.url)
         assert response.status_code == 403
@@ -1657,7 +1794,7 @@ class AddonAndVersionViewSetDetailMixin(object):
     def test_get_not_listed_simple_reviewer(self):
         user = UserProfile.objects.create(username='reviewer')
         self.grant_permission(user, 'Addons:Review')
-        self._make_unlisted()
+        self.make_addon_unlisted(self.addon)
         self.client.login_api(user)
         response = self.client.get(self.url)
         assert response.status_code == 403
@@ -1665,7 +1802,7 @@ class AddonAndVersionViewSetDetailMixin(object):
     def test_get_not_listed_specific_reviewer(self):
         user = UserProfile.objects.create(username='reviewer')
         self.grant_permission(user, 'Addons:ReviewUnlisted')
-        self._make_unlisted()
+        self.make_addon_unlisted(self.addon)
         self.client.login_api(user)
         response = self.client.get(self.url)
         assert response.status_code == 200
@@ -1673,7 +1810,7 @@ class AddonAndVersionViewSetDetailMixin(object):
     def test_get_not_listed_author(self):
         user = UserProfile.objects.create(username='author')
         AddonUser.objects.create(user=user, addon=self.addon)
-        self._make_unlisted()
+        self.make_addon_unlisted(self.addon)
         self.client.login_api(user)
         response = self.client.get(self.url)
         assert response.status_code == 200
@@ -1810,6 +1947,14 @@ class TestVersionViewSetDetail(AddonAndVersionViewSetDetailMixin, TestCase):
     def _set_tested_url(self, param):
         self.url = reverse('addon-version-detail', kwargs={
             'addon_pk': param, 'pk': self.version.pk})
+
+    def test_bad_filter(self):
+        self.version.files.update(status=amo.STATUS_BETA)
+        # The filter is valid, but not for the 'list' action.
+        response = self.client.get(self.url, data={'filter': 'only_beta'})
+        assert response.status_code == 400
+        data = json.loads(response.content)
+        assert data == ['The "filter" parameter is not valid in this context.']
 
     def test_version_get_not_found(self):
         self.url = reverse('addon-version-detail', kwargs={
@@ -1992,6 +2137,12 @@ class TestVersionViewSetList(AddonAndVersionViewSetDetailMixin, TestCase):
 
     def _set_tested_url(self, param):
         self.url = reverse('addon-version-list', kwargs={'addon_pk': param})
+
+    def test_bad_filter(self):
+        response = self.client.get(self.url, data={'filter': 'ahahaha'})
+        assert response.status_code == 400
+        data = json.loads(response.content)
+        assert data == ['Invalid "filter" parameter specified.']
 
     def test_disabled_version_reviewer(self):
         user = UserProfile.objects.create(username='reviewer')
@@ -2229,10 +2380,10 @@ class TestAddonSearchView(ESTestCase):
         self.empty_index('default')
         self.refresh()
 
-    def perform_search(self, url, data=None, **headers):
+    def perform_search(self, url, data=None, expected_status=200, **headers):
         with self.assertNumQueries(0):
             response = self.client.get(url, data, **headers)
-        assert response.status_code == 200
+        assert response.status_code == expected_status
         data = json.loads(response.content)
         return data
 
@@ -2513,23 +2664,34 @@ class TestAddonSearchView(ESTestCase):
         assert data['results'][0]['id'] == tb_addon.pk
 
     def test_filter_by_category(self):
-        addon = addon_factory(slug='my-addon', name=u'My Addôn')
-        category = Category.from_static_category(
+        static_category = (
             CATEGORIES[amo.FIREFOX.id][amo.ADDON_EXTENSION]['alerts-updates'])
-        category.save()
-        AddonCategory.objects.create(addon=addon, category=category)
-        addon_factory(slug='different-addon', name=u'Addôn not in that cat')
+        category, _ = Category.objects.get_or_create(
+            id=static_category.id, defaults=static_category.__dict__)
+        addon = addon_factory(
+            slug='my-addon', name=u'My Addôn', category=category)
 
-        # Because the AddonCategory was created manually after the initial
-        # save, we need to reindex and not just refresh.
-        self.reindex(Addon)
+        self.refresh()
 
+        # Create an add-on in a different category.
+        static_category = (
+            CATEGORIES[amo.FIREFOX.id][amo.ADDON_EXTENSION]['tabs'])
+        other_category, _ = Category.objects.get_or_create(
+            id=static_category.id, defaults=static_category.__dict__)
+        addon_factory(slug='different-addon', category=other_category)
+
+        # Search for add-ons in the first category. There should be only one.
         data = self.perform_search(self.url, {'app': 'firefox',
                                               'type': 'extension',
-                                              'category': 'alerts-updates'})
+                                              'category': category.slug})
         assert data['count'] == 1
         assert len(data['results']) == 1
         assert data['results'][0]['id'] == addon.pk
+
+    def test_bad_filter(self):
+        data = self.perform_search(
+            self.url, {'app': 'lol'}, expected_status=400)
+        assert data == ['Invalid "app" parameter.']
 
 
 class TestAddonFeaturedView(TestCase):

@@ -1,6 +1,8 @@
 from django.utils import translation
 
 from elasticsearch_dsl import Q, query
+from elasticsearch_dsl.filter import Bool
+from rest_framework import serializers
 from rest_framework.filters import BaseFilterBackend
 
 from olympia import amo
@@ -34,7 +36,7 @@ class AddonFilterParam(object):
             value = self.get_value_from_reverse_dict()
         if value in self.valid_values:
             return value
-        raise ValueError('Invalid value (not present in self.valid_values).')
+        raise ValueError('Invalid "%s" parameter.' % self.query_param)
 
     def get_value_from_reverse_dict(self):
         value = self.request.GET.get(self.query_param, '')
@@ -44,7 +46,7 @@ class AddonFilterParam(object):
         value = self.request.GET.get(self.query_param, '')
         value = self.reverse_dict.get(value.lower())
         if value is None:
-            raise ValueError('Invalid value (not found in reverse dict).')
+            raise ValueError('Invalid "%s" parameter.' % self.query_param)
         return value
 
     def get_value_from_object_from_reverse_dict(self):
@@ -80,9 +82,12 @@ class AddonAppVersionFilterParam(AddonFilterParam):
             low = version_int(appversion)
             high = version_int(appversion + 'a')
             if low < version_int('10.0'):
-                raise ValueError('appversion is invalid.')
+                raise ValueError('Invalid "%s" parameter.' % self.query_param)
             return app, low, high
-        raise ValueError('Can not filter by appversion, a param is missing.')
+        raise ValueError(
+            'Invalid combination of "%s" and "%s" parameters.' % (
+                AddonAppFilterParam.query_param,
+                self.query_param))
 
     def get_es_filter(self):
         app_id, low, high = self.get_values()
@@ -146,7 +151,11 @@ class AddonCategoryFilterParam(AddonFilterParam):
 
             self.reverse_dict = CATEGORIES[app][type_]
         except KeyError:
-            raise ValueError('This app + type combination has no categories.')
+            raise ValueError(
+                'Invalid combination of "%s", "%s" and "%s" parameters.' % (
+                    AddonAppFilterParam.query_param,
+                    AddonTypeFilterParam.query_param,
+                    self.query_param))
 
     def get_value_from_reverse_dict(self):
         return self.get_value_from_object_from_reverse_dict()
@@ -265,11 +274,14 @@ class SearchParameterFilter(BaseFilterBackend):
 
         for filter_class in self.available_filters:
             try:
-                filter_ = filter_class(request)
-                if filter_.query_param in request.GET:
+                # Initialize the filter class if its query parameter is present
+                # in the request, otherwise don't, to avoid  raising exceptions
+                # because of missing params in complex filters.
+                if filter_class.query_param in request.GET:
+                    filter_ = filter_class(request)
                     must.extend(filter_.get_es_filter())
-            except ValueError:
-                continue
+            except ValueError as exc:
+                raise serializers.ValidationError(*exc.args)
 
         return qs.query(query.Bool(must=must)) if must else qs
 
@@ -306,34 +318,32 @@ class SortingFilter(BaseFilterBackend):
     according to the request.
     """
     SORTING_PARAMS = {
-        'users': '-average_daily_users',
-        'rating': '-bayesian_rating',
         'created': '-created',
-        'name': 'name_sort',
         'downloads': '-weekly_downloads',
+        'hotness': '-hotness',
+        'name': 'name_sort',
+        'rating': '-bayesian_rating',
+        'relevance': '-_score',
         'updated': '-last_updated',
-        'hotness': '-hotness'
+        'users': '-average_daily_users',
     }
-    SORTING_DEFAULT = 'downloads'
 
     def filter_queryset(self, request, qs, view):
         search_query_param = request.GET.get('q')
         sort_param = request.GET.get('sort')
         order_by = None
 
-        if sort_param:
-            order_by = [self.SORTING_PARAMS[name] for name in
-                        sort_param.split(',') if name in self.SORTING_PARAMS]
+        if sort_param is not None:
+            try:
+                order_by = [self.SORTING_PARAMS[name] for name in
+                            sort_param.split(',')]
+            except KeyError:
+                raise serializers.ValidationError('Invalid "sort" parameter.')
 
-        # The default sort behaviour depends on the presence of a query: When
-        # querying (with `?q=`) we want to let ES order results by relevance
-        # by default. Therefore, if we don't have a valid order_by at this
-        # point, only add the default one if we did not have a search query
-        # param.
-        if not order_by and not search_query_param:
-            order_by = [self.SORTING_PARAMS[self.SORTING_DEFAULT]]
+        # The default sort depends on the presence of a query: we sort by
+        # relevance if we have a query, otherwise by downloads.
+        if not order_by:
+            sort_param = 'relevance' if search_query_param else 'downloads'
+            order_by = [self.SORTING_PARAMS[sort_param]]
 
-        if order_by:
-            return qs.sort(*order_by)
-
-        return qs
+        return qs.sort(*order_by)

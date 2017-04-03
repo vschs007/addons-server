@@ -1,35 +1,23 @@
 """
 Miscellaneous helpers that make Django compatible with AMO.
 """
-import threading
-
-import commonware.log
 from product_details import product_details
 
+import olympia.core.logger
+from olympia.constants.activity import (  # noqa
+    LOG, LOG_BY_ID, LOG_ADMINS, LOG_EDITOR_REVIEW_ACTION,
+    LOG_EDITORS, LOG_HIDE_DEVELOPER, LOG_KEEP, LOG_REVIEW_QUEUE,
+    LOG_REVIEW_QUEUE_DEVELOPER, LOG_REVIEW_EMAIL_USER)
 from olympia.constants.applications import *  # noqa
 from olympia.constants.base import *  # noqa
+from olympia.constants.editors import *  # noqa
 from olympia.constants.licenses import *  # noqa
 from olympia.constants.payments import *  # noqa
 from olympia.constants.platforms import *  # noqa
 from olympia.constants.search import *  # noqa
 
-from .log import (LOG, LOG_BY_ID, LOG_ADMINS, LOG_EDITOR_REVIEW_ACTION,  # noqa
-                  LOG_EDITORS, LOG_HIDE_DEVELOPER, LOG_KEEP, LOG_REVIEW_QUEUE,
-                  LOG_REVIEW_QUEUE_DEVELOPER, LOG_REVIEW_EMAIL_USER, log)
 
-
-logger_log = commonware.log.getLogger('z.amo')
-
-_locals = threading.local()
-_locals.user = None
-
-
-def get_user():
-    return getattr(_locals, 'user', None)
-
-
-def set_user(user):
-    _locals.user = user
+logger_log = olympia.core.logger.getLogger('z.amo')
 
 
 def cached_property(*args, **kw):
@@ -92,6 +80,7 @@ class CachedProperty(object):
         if not self.writable:
             raise TypeError('read only attribute')
         obj.__dict__[self.__name__] = value
+
 
 # For unproven performance gains put firefox and thunderbird parsing
 # here instead of constants

@@ -1,9 +1,5 @@
 {% extends "editors/base.html" %}
 
-{% block breadcrumbs %}
-{{ editors_breadcrumbs(queue=tab) }}
-{% endblock %}
-
 {% block content %}
 
 <div id="reviewers-score-bar" class="c">
@@ -20,8 +16,8 @@
   <div class="queue-inner">
     {% if search_form %}
     <div class="queue-search">
-      <form method="get">
-        {{ search_form['searching'] }}
+      <form method="get" data-no-csrf>
+        <input type="hidden" id="id_searching" name="searching" value="True" />
         <label for="id_text_query">{{ search_form['text_query'].label }}</label>
         {{ search_form['text_query'] }}
         <button type="submit">{{ _('Search') }}</button>
@@ -87,11 +83,6 @@
               by {{ user }} on {{ date }}
               {{ stars }} ({{ locale }})
             {% endtrans %}
-            {% if waffle.switch('reviews-translate') %}
-              &middot;
-              <a class="translate" rel="nofollow"
-                 href="{{ url('addons.reviews.translate', review.instance.addon.slug, review.instance.id, LANG) }}">{{ _('translate') }}</a>
-            {% endif %}
             </p>
             <p class="description">{{ review.instance.body|nl2br }}</p>
             <ul class="reviews-flagged-reasons">

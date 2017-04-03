@@ -12,15 +12,16 @@ from django.test.utils import override_settings
 import mock
 import pytest
 from PIL import Image
+from waffle.models import Switch
 
 from olympia import amo
-from olympia.applications.models import AppVersion
-from olympia.amo.tests import TestCase, version_factory
-from olympia.constants.base import VALIDATOR_SKELETON_RESULTS
 from olympia.addons.models import Addon
+from olympia.amo.tests import addon_factory, TestCase, version_factory
 from olympia.amo.helpers import user_media_path
 from olympia.amo.tests.test_helpers import get_image_path, get_addon_file
 from olympia.amo.utils import utc_millesecs_from_epoch
+from olympia.applications.models import AppVersion
+from olympia.constants.base import VALIDATOR_SKELETON_RESULTS
 from olympia.devhub import tasks
 from olympia.files.models import FileUpload
 from olympia.versions.models import Version
@@ -110,6 +111,7 @@ class ValidatorTestCase(TestCase):
         # amo-validator.
         # The other ones are app-versions we're using in our
         # tests
+        self.create_appversion('firefox', '2.0')
         self.create_appversion('firefox', '3.7a1pre')
         self.create_appversion('firefox', '38.0a1')
 
@@ -117,6 +119,10 @@ class ValidatorTestCase(TestCase):
         self.create_appversion('firefox', '*')
         self.create_appversion('firefox', '42.0')
         self.create_appversion('firefox', '43.0')
+
+        # Required for Thunderbird tests
+        self.create_appversion('thunderbird', '42.0')
+        self.create_appversion('thunderbird', '45.0')
 
     def create_appversion(self, name, version):
         return AppVersion.objects.create(
@@ -201,27 +207,6 @@ class TestValidator(ValidatorTestCase):
         assert 'WebExtension' in validation['messages'][0]['message']
         assert not self.upload.valid
 
-    @override_settings(CELERY_EAGER_PROPAGATES_EXCEPTIONS=False)
-    @mock.patch('olympia.devhub.tasks.annotate_validation_results')
-    @mock.patch('olympia.devhub.tasks.run_validator')
-    def test_annotation_error(self, run_validator, annotate):
-        """Test that an error that occurs during annotation is saved as an
-        error result."""
-        annotate.side_effect = Exception
-        run_validator.return_value = '{"errors": 0}'
-
-        assert self.upload.validation is None
-
-        tasks.validate(self.upload, listed=True)
-        self.upload.reload()
-
-        validation = self.upload.processed_validation
-        assert validation
-        assert validation['errors'] == 1
-        assert validation['messages'][0]['id'] == ['validator',
-                                                   'unexpected_exception']
-        assert not self.upload.valid
-
     @override_settings(SIGNING_SERVER='http://full')
     @mock.patch('olympia.devhub.tasks.run_validator')
     def test_validation_signing_warning(self, _mock):
@@ -241,40 +226,6 @@ class TestValidator(ValidatorTestCase):
         validation = json.loads(self.get_upload().validation)
         assert validation['warnings'] == 0
         assert len(validation['messages']) == 0
-
-    @mock.patch('olympia.devhub.tasks.run_validator')
-    def test_annotate_passed_auto_validation(self, _mock):
-        """Set passed_auto_validation on reception of the results."""
-        result = {'signing_summary': {'trivial': 1, 'low': 0, 'medium': 0,
-                                      'high': 0},
-                  'errors': 0}
-
-        _mock.return_value = json.dumps(result)
-        tasks.validate(self.upload, listed=True)
-        validation = json.loads(self.get_upload().validation)
-        assert validation['passed_auto_validation']
-
-    @mock.patch('olympia.devhub.tasks.run_validator')
-    def test_annotate_failed_auto_validation(self, _mock):
-        """Set passed_auto_validation on reception of the results."""
-        result = {'signing_summary': {'trivial': 0, 'low': 1, 'medium': 0,
-                                      'high': 0},
-                  'errors': 0}
-
-        _mock.return_value = json.dumps(result)
-        tasks.validate(self.upload, listed=True)
-        validation = json.loads(self.get_upload().validation)
-        assert not validation['passed_auto_validation']
-
-    @mock.patch('olympia.devhub.tasks.run_validator')
-    def test_annotate_passed_auto_validation_bogus_result(self, _mock):
-        """Don't set passed_auto_validation, don't fail if results is bogus."""
-        _mock.return_value = '{"errors": 0}'
-        tasks.validate(self.upload, listed=True)
-        assert (json.loads(self.get_upload().validation) ==
-                {"passed_auto_validation": True, "errors": 0,
-                 "signing_summary": {"high": 0, "medium": 0,
-                                     "low": 0, "trivial": 0}})
 
     @mock.patch('validator.validate.validate')
     @mock.patch('olympia.devhub.tasks.track_validation_stats')
@@ -309,7 +260,9 @@ class TestMeasureValidationTime(TestValidator):
         return now - upload_start
 
     def assert_milleseconds_are_close(self, actual_ms, calculated_ms,
-                                      fuzz=Decimal(300)):
+                                      fuzz=None):
+        if fuzz is None:
+            fuzz = Decimal(300)
         assert (actual_ms >= (calculated_ms - fuzz) and
                 actual_ms <= (calculated_ms + fuzz))
 
@@ -433,84 +386,6 @@ class TestTrackValidatorStats(TestCase):
             'devhub.validator.results.unlisted.success'
         )
 
-    def test_count_unsignable_addon_for_low_error(self):
-        tasks.track_validation_stats(self.result(
-            errors=1,
-            signing_summary={
-                'low': 1,
-                'medium': 0,
-                'high': 0,
-            },
-            metadata={
-                'listed': False,
-            },
-        ))
-        self.mock_incr.assert_any_call(
-            'devhub.validator.results.unlisted.is_not_signable'
-        )
-
-    def test_count_unsignable_addon_for_medium_error(self):
-        tasks.track_validation_stats(self.result(
-            errors=1,
-            signing_summary={
-                'low': 0,
-                'medium': 1,
-                'high': 0,
-            },
-            metadata={
-                'listed': False,
-            },
-        ))
-        self.mock_incr.assert_any_call(
-            'devhub.validator.results.unlisted.is_not_signable'
-        )
-
-    def test_count_unsignable_addon_for_high_error(self):
-        tasks.track_validation_stats(self.result(
-            errors=1,
-            signing_summary={
-                'low': 0,
-                'medium': 0,
-                'high': 1,
-            },
-            metadata={
-                'listed': False,
-            },
-        ))
-        self.mock_incr.assert_any_call(
-            'devhub.validator.results.unlisted.is_not_signable'
-        )
-
-    def test_count_unlisted_signable_addons(self):
-        tasks.track_validation_stats(self.result(
-            signing_summary={
-                'low': 0,
-                'medium': 0,
-                'high': 0,
-            },
-            metadata={
-                'listed': False,
-            },
-        ))
-        self.mock_incr.assert_any_call(
-            'devhub.validator.results.unlisted.is_signable'
-        )
-
-    def test_count_listed_signable_addons(self):
-        tasks.track_validation_stats(self.result(
-            signing_summary={
-                'low': 0,
-                'medium': 0,
-                'high': 0,
-            },
-            metadata={
-                'listed': True,
-            },
-        ))
-        self.mock_incr.assert_any_call(
-            'devhub.validator.results.listed.is_signable'
-        )
-
 
 class TestRunAddonsLinter(ValidatorTestCase):
 
@@ -563,7 +438,7 @@ class TestRunAddonsLinter(ValidatorTestCase):
 
             assert tmpf.call_count == 2
             assert result['success']
-            assert result['warnings'] == 11
+            assert result['warnings'] == 24
             assert not result['errors']
 
 
@@ -719,9 +594,7 @@ class TestWebextensionIncompatibilities(ValidatorTestCase):
 
     def test_webextension_downgrade_only_warning_unlisted(self):
         self.update_files(is_webextension=True)
-        self.addon.is_listed = False
-        self.addon.save(update_fields=('is_listed',))
-        self.addon.versions.update(channel=amo.RELEASE_CHANNEL_UNLISTED)
+        self.make_addon_unlisted(self.addon)
 
         file_ = amo.tests.AMOPaths().file_fixture_path(
             'delicious_bookmarks-2.1.106-fx.xpi')
@@ -735,6 +608,7 @@ class TestWebextensionIncompatibilities(ValidatorTestCase):
 
         assert validation['messages'][0]['id'] == expected
         assert validation['messages'][0]['type'] == 'warning'
+        assert validation['errors'] == 0
 
     def test_webextension_cannot_be_downgraded_ignore_deleted_version(self):
         """Make sure there's no workaround the downgrade error."""
@@ -787,6 +661,95 @@ class TestWebextensionIncompatibilities(ValidatorTestCase):
 
         assert validation['messages'][0]['id'] == expected
         assert validation['messages'][0]['type'] == 'error'
+
+
+class TestNewLegacyAddonRestrictions(ValidatorTestCase):
+    def setUp(self):
+        super(TestNewLegacyAddonRestrictions, self).setUp()
+        self.create_switch('restrict-new-legacy-submissions')
+
+    def test_submit_legacy_addon_restricted(self):
+        file_ = get_addon_file('valid_firefox_addon.xpi')
+        upload = FileUpload.objects.create(path=file_)
+        tasks.validate(upload, listed=True)
+
+        upload.refresh_from_db()
+
+        assert upload.processed_validation['errors'] == 1
+        expected = ['validation', 'messages', 'legacy_extensions_restricted']
+        assert upload.processed_validation['messages'][0]['id'] == expected
+        assert not upload.valid
+
+    def test_submit_legacy_extension_waffle_is_off(self):
+        switch = Switch.objects.get(name='restrict-new-legacy-submissions')
+        switch.active = False
+        switch.save()
+
+        file_ = get_addon_file('valid_firefox_addon.xpi')
+        upload = FileUpload.objects.create(path=file_)
+        tasks.validate(upload, listed=True)
+
+        upload.refresh_from_db()
+
+        assert upload.processed_validation['errors'] == 0
+        assert upload.processed_validation['messages'] == []
+        assert upload.valid
+
+    def test_submit_legacy_extension_not_a_new_addon(self):
+        file_ = get_addon_file('valid_firefox_addon.xpi')
+        addon = addon_factory(version_kw={'version': '0.1'})
+        upload = FileUpload.objects.create(path=file_, addon=addon)
+        tasks.validate(upload, listed=True)
+
+        upload.refresh_from_db()
+
+        assert upload.processed_validation['errors'] == 0
+        assert upload.processed_validation['messages'] == []
+        assert upload.valid
+
+    def test_submit_webextension(self):
+        file_ = get_addon_file('valid_webextension.xpi')
+        upload = FileUpload.objects.create(path=file_)
+        tasks.validate(upload, listed=True)
+
+        upload.refresh_from_db()
+
+        assert upload.processed_validation['errors'] == 0
+        assert upload.processed_validation['messages'] == []
+        assert upload.valid
+
+    def test_submit_legacy_extension_targets_older_firefox_stricly(self):
+        file_ = get_addon_file('valid_firefox_addon_strict_compatibility.xpi')
+        upload = FileUpload.objects.create(path=file_)
+        tasks.validate(upload, listed=True)
+
+        upload.refresh_from_db()
+
+        assert upload.processed_validation['errors'] == 0
+        assert upload.processed_validation['messages'] == []
+        assert upload.valid
+
+    def test_submit_non_extension(self):
+        file_ = get_addon_file('searchgeek-20090701.xml')
+        upload = FileUpload.objects.create(path=file_)
+        tasks.validate(upload, listed=True)
+
+        upload.refresh_from_db()
+
+        assert upload.processed_validation['errors'] == 0
+        assert upload.processed_validation['messages'] == []
+        assert upload.valid
+
+    def test_submit_thunderbird_extension(self):
+        file_ = get_addon_file('valid_firefox_and_thunderbird_addon.xpi')
+        upload = FileUpload.objects.create(path=file_)
+        tasks.validate(upload, listed=True)
+
+        upload.refresh_from_db()
+
+        assert upload.processed_validation['errors'] == 0
+        assert upload.processed_validation['messages'] == []
+        assert upload.valid
 
 
 @mock.patch('olympia.devhub.tasks.send_html_mail_jinja')

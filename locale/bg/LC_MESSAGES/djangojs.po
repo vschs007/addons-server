@@ -1,9 +1,9 @@
-# 
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: AMO-JS 0.1\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2016-12-01 06:45+0000\n"
+"POT-Creation-Date: 2017-04-03 05:29+0000\n"
 "PO-Revision-Date: 2016-12-06 11:51+0000\n"
 "Last-Translator: :stoyan <stoyan@gmx.com>\n"
 "Language-Team: none\n"
@@ -1052,18 +1052,6 @@ msgstr "Средно рецензии"
 msgid "Number of Reviews"
 msgstr "Брой рецензии"
 
-#: static/js/zamboni/editors.js
-msgid "Error loading translation"
-msgstr "Грешка при зареждане на превода"
-
-#: static/js/zamboni/files.js static/js/zamboni/validator.js
-msgid "Ignore this message in future updates"
-msgstr "Пренебрегване на това съобщение при следващи обновявания"
-
-#: static/js/zamboni/files.js static/js/zamboni/validator.js
-msgid "Severity for automated signing:"
-msgstr "Тежест на автоматичното подписване:"
-
 #: static/js/zamboni/global.js
 msgid "Loading..."
 msgstr "Зареждане..."
@@ -1148,10 +1136,6 @@ msgstr "Грешка"
 #: static/js/zamboni/validator.js
 msgid "Warning"
 msgstr "Внимание"
-
-#: static/js/zamboni/validator.js
-msgid "Suggestions for passing automated signing:"
-msgstr "Съвети за успешно автоматично подписване:"
 
 #: static/js/zamboni/validator.js
 msgid "{0} line {1} column {2}"

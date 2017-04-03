@@ -17,11 +17,13 @@ from olympia import amo
 from olympia.amo.tests import TestCase
 from olympia.abuse.models import AbuseReport
 from olympia.access.models import Group, GroupUser
+from olympia.accounts.views import API_TOKEN_COOKIE
+from olympia.activity.models import ActivityLog
 from olympia.addons.models import Addon, AddonUser, Category
 from olympia.amo.helpers import urlparams
 from olympia.amo.urlresolvers import reverse
 from olympia.bandwagon.models import Collection, CollectionWatcher
-from olympia.devhub.models import ActivityLog
+from olympia.constants.categories import CATEGORIES
 from olympia.reviews.models import Review
 from olympia.users import notifications as email
 from olympia.users.models import UserProfile, UserNotification
@@ -453,10 +455,14 @@ class TestLogout(UserViewBase):
 
     def test_session_cookie_deleted_on_logout(self):
         self.client.login(email='jbalogh@mozilla.com')
+        self.client.cookies[API_TOKEN_COOKIE] = 'some.token.value'
         r = self.client.get(reverse('users.logout'))
         cookie = r.cookies[settings.SESSION_COOKIE_NAME]
         assert cookie.value == ''
         assert cookie['expires'] == u'Thu, 01-Jan-1970 00:00:00 GMT'
+        jwt_cookie = r.cookies[API_TOKEN_COOKIE]
+        assert jwt_cookie.value == ''
+        assert jwt_cookie['expires'] == u'Thu, 01-Jan-1970 00:00:00 GMT'
 
 
 class TestRegistration(UserViewBase):
@@ -600,13 +606,14 @@ class TestProfileSections(TestCase):
         assert items('.install[data-addon="5299"]').length == 1
 
     def test_my_unlisted_addons(self):
-        """I can't see my own unlisted addons on my profile page."""
+        """I can't see my own unlisted addons on my profile page (because
+        we filter by status through .valid())."""
         assert pq(self.client.get(self.url).content)(
             '.num-addons a').length == 0
 
         AddonUser.objects.create(user=self.user, addon_id=3615)
-        Addon.objects.get(pk=5299).update(is_listed=False)
         AddonUser.objects.create(user=self.user, addon_id=5299)
+        self.make_addon_unlisted(Addon.objects.get(pk=5299))
 
         r = self.client.get(self.url)
         assert list(r.context['addons'].object_list) == [
@@ -618,14 +625,15 @@ class TestProfileSections(TestCase):
         assert items('.install[data-addon="3615"]').length == 1
 
     def test_not_my_unlisted_addons(self):
-        """I can't see others' unlisted addons on their profile pages."""
+        """I can't see others' unlisted addons on their profile pages (because
+        we filter by status through .valid())."""
         res = self.client.get('/user/999/', follow=True)
         assert pq(res.content)('.num-addons a').length == 0
 
         user = UserProfile.objects.get(pk=999)
         AddonUser.objects.create(user=user, addon_id=3615)
-        Addon.objects.get(pk=5299).update(is_listed=False)
         AddonUser.objects.create(user=user, addon_id=5299)
+        self.make_addon_unlisted(Addon.objects.get(pk=5299))
 
         r = self.client.get('/user/999/', follow=True)
         assert list(r.context['addons'].object_list) == [
@@ -667,6 +675,12 @@ class TestProfileSections(TestCase):
         # Edit Review form should be present.
         self.assertTemplateUsed(r, 'reviews/edit_review.html')
 
+    def _get_reviews(self, username):
+        self.client.login(email=username)
+        r = self.client.get(reverse('users.profile', args=[999]))
+        doc = pq(r.content)('#reviews')
+        return doc('#review-218207 .item-actions a.delete-review')
+
     def test_my_reviews_delete_link(self):
         review = Review.objects.filter(reply_to=None)[0]
         review.user_id = 999
@@ -675,30 +689,39 @@ class TestProfileSections(TestCase):
         slug = Addon.objects.get(id=review.addon_id).slug
         delete_url = reverse('addons.reviews.delete', args=[slug, review.pk])
 
-        def _get_reviews(username):
-            self.client.login(email=username)
-            r = self.client.get(reverse('users.profile', args=[999]))
-            doc = pq(r.content)('#reviews')
-            return doc('#review-218207 .item-actions a.delete-review')
-
         # Admins get the Delete Review link.
-        r = _get_reviews(username='admin@mozilla.com')
+        r = self._get_reviews(username='admin@mozilla.com')
         assert r.length == 1
         assert r.attr('href') == delete_url
 
-        # Editors get the Delete Review link.
-        r = _get_reviews(username='editor@mozilla.com')
-        assert r.length == 1
-        assert r.attr('href') == delete_url
+        # Editors don't get the Delete Review link
+        # (unless it's pending moderation).
+        r = self._get_reviews(username='editor@mozilla.com')
+        assert r.length == 0
 
         # Author gets the Delete Review link.
-        r = _get_reviews(username='regular@mozilla.com')
+        r = self._get_reviews(username='regular@mozilla.com')
         assert r.length == 1
         assert r.attr('href') == delete_url
 
         # Other user does not get the Delete Review link.
-        r = _get_reviews(username='clouserw@gmail.com')
+        r = self._get_reviews(username='clouserw@gmail.com')
         assert r.length == 0
+
+    def test_my_reviews_delete_link_moderated(self):
+        review = Review.objects.filter(reply_to=None)[0]
+        review.user_id = 999
+        review.editorreview = True
+        review.save()
+        cache.clear()
+        slug = Addon.objects.get(id=review.addon_id).slug
+        delete_url = reverse('addons.reviews.delete', args=[slug, review.pk])
+
+        # Editors get the Delete Review link
+        # because the review is pending moderation
+        r = self._get_reviews(username='editor@mozilla.com')
+        assert r.length == 1
+        assert r.attr('href') == delete_url
 
     def test_my_reviews_no_pagination(self):
         r = self.client.get(self.url)
@@ -847,13 +870,16 @@ class TestThemesProfile(TestCase):
         assert res.status_code == 200
 
     def test_themes_category(self):
-        self.theme = amo.tests.addon_factory(type=amo.ADDON_PERSONA)
-        self.theme.addonuser_set.create(user=self.user, listed=True)
-        cat = Category.objects.create(type=amo.ADDON_PERSONA, slug='swag')
-        self.theme.addoncategory_set.create(category=cat)
+        static_category = (
+            CATEGORIES[amo.FIREFOX.id][amo.ADDON_PERSONA]['fashion'])
+        category, _ = Category.objects.get_or_create(
+            id=static_category.id, defaults=static_category.__dict__)
+
+        self.theme = amo.tests.addon_factory(
+            type=amo.ADDON_PERSONA, users=[self.user], category=category)
 
         res = self.client.get(
-            self.user.get_user_url('themes', args=[cat.slug]))
+            self.user.get_user_url('themes', args=[category.slug]))
         self._test_good(res)
 
 

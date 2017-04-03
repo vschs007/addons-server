@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2016-12-01 06:45+0000\n"
+"POT-Creation-Date: 2017-04-03 05:29+0000\n"
 "PO-Revision-Date: 2016-10-25 12:17+0000\n"
 "Last-Translator: Balázs Meskó <meskobalazs@gmail.com>\n"
 "Language-Team: Hungarian <kde-l10n-hu@kde.org>\n"
@@ -1054,18 +1054,6 @@ msgstr "Átlagos értékelések"
 msgid "Number of Reviews"
 msgstr "Értékelések száma"
 
-#: static/js/zamboni/editors.js
-msgid "Error loading translation"
-msgstr "Hiba a fordítás betöltésekor"
-
-#: static/js/zamboni/files.js static/js/zamboni/validator.js
-msgid "Ignore this message in future updates"
-msgstr "Ezt az üzenetet a jövőbeli frissítéseknél hagyja figyelmen kívül"
-
-#: static/js/zamboni/files.js static/js/zamboni/validator.js
-msgid "Severity for automated signing:"
-msgstr "Súlyosság (az automatikus aláíráshoz):"
-
 #: static/js/zamboni/global.js
 msgid "Loading..."
 msgstr "Betöltés…"
@@ -1150,10 +1138,6 @@ msgstr "Hiba"
 #: static/js/zamboni/validator.js
 msgid "Warning"
 msgstr "Figyelmeztetés"
-
-#: static/js/zamboni/validator.js
-msgid "Suggestions for passing automated signing:"
-msgstr "Javaslatok az automatizált aláírás teljesítéséhez:"
 
 #: static/js/zamboni/validator.js
 msgid "{0} line {1} column {2}"

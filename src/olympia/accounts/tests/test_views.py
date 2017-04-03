@@ -9,11 +9,10 @@ from django.contrib.messages import get_messages
 from django.core.urlresolvers import resolve, reverse
 from django.test import RequestFactory
 from django.test.utils import override_settings
-import mock
-from waffle.models import Switch
 
+import mock
 from rest_framework.test import APIRequestFactory, APITestCase
-from rest_framework_jwt.serializers import VerifyJSONWebTokenSerializer
+from waffle.models import Switch
 
 from olympia.access.acl import action_allowed_user
 from olympia.access.models import Group, GroupUser
@@ -22,6 +21,7 @@ from olympia.amo.helpers import absolutify, urlparams
 from olympia.amo.tests import (
     assert_url_equal, create_switch, user_factory, APITestClient,
     InitializeSessionMixin, PatchMixin, TestCase, WithDynamicEndpoints)
+from olympia.api.authentication import WebTokenAuthentication
 from olympia.api.tests.utils import APIKeyAuthTestCase
 from olympia.users.models import UserProfile
 
@@ -31,9 +31,20 @@ FXA_CONFIG = {
     'redirect_url': 'https://addons.mozilla.org/fxa-authenticate',
     'scope': 'profile',
 }
+SKIP_REDIRECT_FXA_CONFIG = {
+    'oauth_host': 'https://accounts.firefox.com/v1',
+    'client_id': 'amodefault',
+    'redirect_url': 'https://addons.mozilla.org/fxa-authenticate',
+    'scope': 'profile',
+    'skip_register_redirect': True,
+}
 
 
-@override_settings(FXA_CONFIG={'default': FXA_CONFIG, 'internal': FXA_CONFIG})
+@override_settings(FXA_CONFIG={
+    'default': FXA_CONFIG,
+    'internal': FXA_CONFIG,
+    'skip': SKIP_REDIRECT_FXA_CONFIG,
+})
 class BaseAuthenticationView(APITestCase, PatchMixin,
                              InitializeSessionMixin):
 
@@ -127,6 +138,7 @@ def update_domains(overrides):
     overrides['CORS_ORIGIN_WHITELIST'] = ['addons-frontend', 'localhost:3000']
     return overrides
 
+
 endpoint_overrides = [
     (regex, update_domains(overrides))
     for regex, overrides in settings.CORS_ENDPOINT_OVERRIDES]
@@ -194,9 +206,9 @@ class TestLoginUser(TestCase):
         patcher = mock.patch('olympia.accounts.views.login')
         self.login = patcher.start()
         self.addCleanup(patcher.stop)
-        patcher = mock.patch('olympia.users.models.commonware.log')
-        commonware_log = patcher.start()
-        commonware_log.get_remote_addr.return_value = '8.8.8.8'
+        patcher = mock.patch('olympia.core.get_remote_addr')
+        get_remote_addr_mock = patcher.start()
+        get_remote_addr_mock.return_value = '8.8.8.8'
         self.addCleanup(patcher.stop)
 
     def test_user_gets_logged_in(self):
@@ -224,6 +236,12 @@ class TestLoginUser(TestCase):
         user = self.user.reload()
         assert user.fxa_id == '9001'
         assert user.email == 'real@yeahoo.com'
+
+    def test_auth_id_updated_if_none(self):
+        self.user.update(auth_id=None)
+        views.login_user(self.request, self.user, self.identity)
+        self.user.reload()
+        assert self.user.auth_id
 
 
 class TestFindUser(TestCase):
@@ -275,7 +293,14 @@ class TestRenderErrorHTML(TestCase):
         messages = get_messages(request)
         assert len(messages) == 1
         assert 'could not be parsed' in next(iter(messages)).message
-        assert_url_equal(response['location'], self.login_url(to='/over/here'))
+        assert_url_equal(response['location'], absolutify('/over/here'))
+        response = self.render_error(
+            request, views.ERROR_NO_CODE, next_path=None)
+        assert response.status_code == 302
+        messages = get_messages(request)
+        assert len(messages) == 1
+        assert 'could not be parsed' in next(iter(messages)).message
+        assert_url_equal(response['location'], self.login_url())
 
     def test_error_no_profile_with_no_path(self):
         request = self.make_request()
@@ -472,16 +497,47 @@ class TestWithUser(TestCase):
         assert not self.find_user.called
         assert not self.fxa_identify.called
 
-    def test_logged_in_disallows_login(self):
-        self.request.data = {'code': 'woah', 'state': 'some-blob'}
+    @mock.patch.object(views, 'generate_api_token')
+    def test_logged_in_disallows_login(self, generate_api_token_mock):
+        self.request.data = {
+            'code': 'foo',
+            'state': 'some-blob:{}'.format(base64.urlsafe_b64encode('/next')),
+        }
         self.user = UserProfile()
         self.request.user = self.user
         assert self.user.is_authenticated()
+        self.request.COOKIES = {views.API_TOKEN_COOKIE: 'foobar'}
         self.fn(self.request)
         self.render_error.assert_called_with(
-            self.request, views.ERROR_AUTHENTICATED, next_path=None,
+            self.request, views.ERROR_AUTHENTICATED, next_path='/next',
             format='json')
         assert not self.find_user.called
+        assert self.render_error.return_value.set_cookie.call_count == 0
+        assert generate_api_token_mock.call_count == 0
+
+    @mock.patch.object(views, 'generate_api_token', lambda u: 'fake-api-token')
+    def test_already_logged_in_add_api_token_cookie_if_missing(self):
+        self.request.data = {
+            'code': 'foo',
+            'state': 'some-blob:{}'.format(base64.urlsafe_b64encode('/next')),
+        }
+        self.user = UserProfile()
+        self.request.user = self.user
+        assert self.user.is_authenticated()
+        self.request.COOKIES = {}
+        self.fn(self.request)
+        self.render_error.assert_called_with(
+            self.request, views.ERROR_AUTHENTICATED, next_path='/next',
+            format='json')
+        assert not self.find_user.called
+        response = self.render_error.return_value
+        assert response.set_cookie.call_count == 1
+        response.set_cookie.assert_called_with(
+            views.API_TOKEN_COOKIE,
+            'fake-api-token',
+            max_age=settings.SESSION_COOKIE_AGE,
+            secure=settings.SESSION_COOKIE_SECURE,
+            httponly=settings.SESSION_COOKIE_HTTPONLY)
 
     def test_state_does_not_match(self):
         identity = {'uid': '1234', 'email': 'hey@yo.it'}
@@ -495,6 +551,24 @@ class TestWithUser(TestCase):
         self.render_error.assert_called_with(
             self.request, views.ERROR_STATE_MISMATCH, next_path='/next',
             format='json')
+
+    def test_dynamic_configuration(self):
+        fxa_config = {'some': 'config'}
+
+        class LoginView(object):
+            def get_fxa_config(self, request):
+                return fxa_config
+
+            @views.with_user(format='json')
+            def post(*args, **kwargs):
+                return args, kwargs
+
+        identity = {'uid': '1234', 'email': 'hey@yo.it'}
+        self.fxa_identify.return_value = identity
+        self.find_user.return_value = self.user
+        self.request.data = {'code': 'foo', 'state': 'some-blob'}
+        LoginView().post(self.request)
+        self.fxa_identify.assert_called_with('foo', config=fxa_config)
 
 
 class TestRegisterUser(TestCase):
@@ -514,6 +588,7 @@ class TestRegisterUser(TestCase):
         user = user_qs.get()
         assert user.username.startswith('anonymous-')
         assert user.fxa_id == '9005'
+        assert user.auth_id
         self.login.assert_called_with(self.request, user)
 
     def test_username_taken_creates_user(self):
@@ -628,8 +703,9 @@ class TestLoginBaseView(WithDynamicEndpoints, TestCase):
             self.url, {'code': 'code', 'state': 'some-blob'})
         assert response.status_code == 200
         assert response.data['email'] == 'real@yeahoo.com'
-        verify = VerifyJSONWebTokenSerializer().validate(response.data)
-        assert verify['user'] == user
+        token = response.data['token']
+        verify = WebTokenAuthentication().authenticate_token(token)
+        assert verify[0] == user
         self.update_user.assert_called_with(user, identity)
 
     def test_multiple_accounts_found(self):
@@ -685,7 +761,7 @@ class TestRegisterView(BaseAuthenticationView):
             self.url, {'code': 'codes!!', 'state': 'some-blob'})
         assert response.status_code == 200
         assert response.data['email'] == 'me@yeahoo.com'
-        assert (response.cookies['jwt_api_auth_token'].value ==
+        assert (response.cookies['api_auth_token'].value ==
                 response.data['token'])
         self.fxa_identify.assert_called_with('codes!!', config=FXA_CONFIG)
         self.register_user.assert_called_with(mock.ANY, identity)
@@ -744,20 +820,25 @@ class TestAuthenticateView(BaseAuthenticationView):
         assert not user_qs.exists()
         identity = {u'email': u'me@yeahoo.com', u'uid': u'e0b6f'}
         self.fxa_identify.return_value = identity
+        self.register_user.side_effect = (
+            lambda r, i: UserProfile.objects.create(
+                username='foo', email='me@yeahoo.com', fxa_id='e0b6f'))
         response = self.client.get(
             self.url, {'code': 'codes!!', 'state': self.fxa_state})
-        # This 302s because the user isn't logged in due to mocking.
-        self.assertRedirects(
-            response, reverse('users.edit'), target_status_code=302)
         self.fxa_identify.assert_called_with('codes!!', config=FXA_CONFIG)
         assert not self.login_user.called
         self.register_user.assert_called_with(mock.ANY, identity)
+        token = response.cookies['api_auth_token'].value
+        verify = WebTokenAuthentication().authenticate_token(token)
+        assert verify[0] == UserProfile.objects.get(username='foo')
 
     def test_register_redirects_edit(self):
         user_qs = UserProfile.objects.filter(email='me@yeahoo.com')
         assert not user_qs.exists()
         identity = {u'email': u'me@yeahoo.com', u'uid': u'e0b6f'}
         self.fxa_identify.return_value = identity
+        user = UserProfile(username='foo', email='me@yeahoo.com')
+        self.register_user.return_value = user
         response = self.client.get(self.url, {
             'code': 'codes!!',
             'state': ':'.join(
@@ -770,6 +851,28 @@ class TestAuthenticateView(BaseAuthenticationView):
         assert not self.login_user.called
         self.register_user.assert_called_with(mock.ANY, identity)
 
+    @mock.patch('olympia.accounts.views.AuthenticateView.ALLOWED_FXA_CONFIGS',
+                ['default', 'skip'])
+    def test_register_redirects_next_when_config_says_to(self):
+        user_qs = UserProfile.objects.filter(email='me@yeahoo.com')
+        assert not user_qs.exists()
+        identity = {u'email': u'me@yeahoo.com', u'uid': u'e0b6f'}
+        self.fxa_identify.return_value = identity
+        user = UserProfile(username='foo', email='me@yeahoo.com')
+        self.register_user.return_value = user
+        response = self.client.get(self.url, {
+            'code': 'codes!!',
+            'state': ':'.join(
+                [self.fxa_state, base64.urlsafe_b64encode('/go/here')]),
+            'config': 'skip',
+        })
+        self.fxa_identify.assert_called_with(
+            'codes!!', config=SKIP_REDIRECT_FXA_CONFIG)
+        self.assertRedirects(
+            response, '/go/here', fetch_redirect_response=False)
+        assert not self.login_user.called
+        self.register_user.assert_called_with(mock.ANY, identity)
+
     def test_success_with_account_logs_in(self):
         user = UserProfile.objects.create(
             username='foobar', email='real@yeahoo.com', fxa_id='10')
@@ -778,9 +881,9 @@ class TestAuthenticateView(BaseAuthenticationView):
         response = self.client.get(
             self.url, {'code': 'code', 'state': self.fxa_state})
         self.assertRedirects(response, reverse('home'))
-        data = {'token': response.cookies['jwt_api_auth_token'].value}
-        verify = VerifyJSONWebTokenSerializer().validate(data)
-        assert verify['user'] == user
+        token = response.cookies['api_auth_token'].value
+        verify = WebTokenAuthentication().authenticate_token(token)
+        assert verify[0] == user
         self.login_user.assert_called_with(mock.ANY, user, identity)
         assert not self.register_user.called
 
@@ -975,11 +1078,38 @@ class TestParseNextPath(TestCase):
             u'/en-US/firefox/addon/dęlîcíøùs-päñčåkę/?src=hp-dl-featured')
 
 
-class TestAccountViewSetGet(TestCase):
-    def test_basic(self):
-        self.user = user_factory()
-        self.url = reverse(
-            'account-detail', kwargs={'pk': self.user.pk})
+class TestSessionView(TestCase):
+    def login_user(self, user):
+        identity = {
+            'username': user.username,
+            'email': user.email,
+            'uid': user.fxa_id,
+        }
+        self.initialize_session({'fxa_state': 'myfxastate'})
+        with mock.patch(
+                'olympia.accounts.views.verify.fxa_identify',
+                lambda code, config: identity):
+            response = self.client.get(
+                '{url}?code={code}&state={state}'.format(
+                    url=reverse('accounts.authenticate'),
+                    state='myfxastate',
+                    code='thecode'))
+            token = response.cookies[views.API_TOKEN_COOKIE].value
+            assert token
+            verify = WebTokenAuthentication().authenticate_token(token)
+            assert verify[0] == user
+            assert self.client.session['_auth_user_id'] == str(user.id)
+            return token
 
-        with self.assertRaises(NotImplementedError):
-            self.client.get(self.url)
+    def test_delete_when_authenticated(self):
+        user = user_factory(fxa_id='123123412')
+        token = self.login_user(user)
+        authorization = 'Bearer {token}'.format(token=token)
+        response = self.client.delete(
+            reverse('accounts.session'), HTTP_AUTHORIZATION=authorization)
+        assert not response.cookies[views.API_TOKEN_COOKIE].value
+        assert not self.client.session.get('_auth_user_id')
+
+    def test_delete_when_unauthenticated(self):
+        response = self.client.delete(reverse('accounts.session'))
+        assert response.status_code == 401

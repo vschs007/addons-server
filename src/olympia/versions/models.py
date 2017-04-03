@@ -9,11 +9,11 @@ from django.db import models
 from django.utils.translation import ugettext as _
 
 import caching.base
-import commonware.log
 import jinja2
 from django_statsd.clients import statsd
 
-from olympia import amo
+import olympia.core.logger
+from olympia import activity, amo
 from olympia.amo.models import ManagerBase, ModelBase, OnChangeMixin
 from olympia.amo.utils import sorted_groupby, utc_millesecs_from_epoch
 from olympia.amo.decorators import use_master
@@ -24,11 +24,10 @@ from olympia.files import utils
 from olympia.files.models import File, cleanup_file
 from olympia.translations.fields import (
     LinkifiedField, PurifiedField, save_signal, TranslatedField)
-from olympia.users.models import UserProfile
 
 from .compare import version_dict, version_int
 
-log = commonware.log.getLogger('z.versions')
+log = olympia.core.logger.getLogger('z.versions')
 
 VALID_SOURCE_EXTENSIONS = (
     '.zip', '.tar', '.7z', '.tar.gz', '.tgz', '.tbz', '.txz', '.tar.bz2',
@@ -131,33 +130,34 @@ class Version(OnChangeMixin, ModelBase):
 
     @classmethod
     def from_upload(cls, upload, addon, platforms, channel, send_signal=True,
-                    source=None, is_beta=False):
+                    source=None, is_beta=False, parsed_data=None):
         from olympia.addons.models import AddonFeatureCompatibility
 
         if addon.status == amo.STATUS_DISABLED:
             raise VersionCreateError(
                 'Addon is Mozilla Disabled; no new versions are allowed.')
 
-        data = utils.parse_addon(upload, addon)
+        if parsed_data is None:
+            parsed_data = utils.parse_addon(upload, addon)
         license_id = None
         if channel == amo.RELEASE_CHANNEL_LISTED:
-            previous_version = addon.find_latest_version_including_rejected(
-                channel=channel)
+            previous_version = addon.find_latest_version(
+                channel=channel, exclude=())
             if previous_version and previous_version.license_id:
                 license_id = previous_version.license_id
         version = cls.objects.create(
             addon=addon,
-            version=data['version'],
+            version=parsed_data['version'],
             license_id=license_id,
             source=source,
             channel=channel,
         )
         log.info(
             'New version: %r (%s) from %r' % (version, version.id, upload))
-        amo.log(amo.LOG.ADD_VERSION, version, addon)
+        activity.log_create(amo.LOG.ADD_VERSION, version, addon)
         # Update the add-on e10s compatibility since we're creating a new
         # version that may change that.
-        e10s_compatibility = data.get('e10s_compatibility')
+        e10s_compatibility = parsed_data.get('e10s_compatibility')
         if e10s_compatibility is not None:
             feature_compatibility = (
                 AddonFeatureCompatibility.objects.get_or_create(addon=addon)[0]
@@ -165,7 +165,7 @@ class Version(OnChangeMixin, ModelBase):
             feature_compatibility.update(e10s=e10s_compatibility)
 
         compatible_apps = {}
-        for app in data.get('apps', []):
+        for app in parsed_data.get('apps', []):
             compatible_apps[app.appdata] = ApplicationsVersions(
                 version=version, min=app.min, max=app.max, application=app.id)
             compatible_apps[app.appdata].save()
@@ -184,9 +184,10 @@ class Version(OnChangeMixin, ModelBase):
             platforms = cls._make_safe_platform_files(platforms)
 
         for platform in platforms:
-            File.from_upload(upload, version, platform, parse_data=data,
-                             is_beta=is_beta)
+            File.from_upload(upload, version, platform,
+                             parsed_data=parsed_data, is_beta=is_beta)
 
+        version.inherit_nomination(from_statuses=[amo.STATUS_AWAITING_REVIEW])
         version.disable_old_files()
         # After the upload has been copied to all platforms, remove the upload.
         storage.delete(upload.path)
@@ -245,10 +246,6 @@ class Version(OnChangeMixin, ModelBase):
     def path_prefix(self):
         return os.path.join(user_media_path('addons'), str(self.addon_id))
 
-    @property
-    def mirror_path_prefix(self):
-        return os.path.join(user_media_path('addons'), str(self.addon_id))
-
     def license_url(self, impala=False):
         return reverse('addons.license', args=[self.addon.slug, self.version])
 
@@ -259,7 +256,8 @@ class Version(OnChangeMixin, ModelBase):
 
     def delete(self, hard=False):
         log.info(u'Version deleted: %r (%s)' % (self, self.id))
-        amo.log(amo.LOG.DELETE_VERSION, self.addon, str(self.version))
+        activity.log_create(amo.LOG.DELETE_VERSION, self.addon,
+                            str(self.version))
         if hard:
             super(Version, self).delete()
         else:
@@ -311,7 +309,7 @@ class Version(OnChangeMixin, ModelBase):
 
     @amo.cached_property(writable=True)
     def all_activity(self):
-        from olympia.devhub.models import VersionLog  # yucky
+        from olympia.activity.models import VersionLog  # yucky
         al = (VersionLog.objects.filter(version=self.id).order_by('created')
               .select_related('activity_log', 'version').no_cache())
         return al
@@ -511,7 +509,7 @@ class Version(OnChangeMixin, ModelBase):
     @classmethod
     def transformer_activity(cls, versions):
         """Attach all the activity to the versions."""
-        from olympia.devhub.models import VersionLog  # yucky
+        from olympia.activity.models import VersionLog  # yucky
 
         ids = set(v.id for v in versions)
         if not versions:
@@ -531,7 +529,14 @@ class Version(OnChangeMixin, ModelBase):
             version.all_activity = al_dict.get(v_id, [])
 
     def disable_old_files(self):
-        if not self.files.filter(status=amo.STATUS_BETA).exists():
+        """
+        Disable files from versions older than the current one and awaiting
+        review. Used when uploading a new version.
+
+        Does nothing if the current instance is unlisted or has beta files.
+        """
+        if (self.channel == amo.RELEASE_CHANNEL_LISTED and
+                not self.files.filter(status=amo.STATUS_BETA).exists()):
             qs = File.objects.filter(version__addon=self.addon_id,
                                      version__lt=self.id,
                                      version__deleted=False,
@@ -548,6 +553,16 @@ class Version(OnChangeMixin, ModelBase):
             self.update(nomination=nomination, _signal=False)
             # But we need the cache to be flushed.
             Version.objects.invalidate(self)
+
+    def inherit_nomination(self, from_statuses=None):
+        last_ver = (Version.objects.filter(addon=self.addon,
+                                           channel=amo.RELEASE_CHANNEL_LISTED)
+                    .exclude(nomination=None).exclude(id=self.pk)
+                    .order_by('-nomination'))
+        if from_statuses:
+            last_ver = last_ver.filter(files__status__in=from_statuses)
+        if last_ver.exists():
+            self.reset_nomination_time(nomination=last_ver[0].nomination)
 
     @property
     def unreviewed_files(self):
@@ -578,10 +593,7 @@ def inherit_nomination(sender, instance, **kw):
     if (instance.nomination is None and
             addon.status in amo.UNREVIEWED_ADDON_STATUSES and not
             instance.is_beta):
-        last_ver = (Version.objects.filter(addon=addon)
-                    .exclude(nomination=None).order_by('-nomination'))
-        if last_ver.exists():
-            instance.reset_nomination_time(nomination=last_ver[0].nomination)
+        instance.inherit_nomination()
 
 
 def update_incompatible_versions(sender, instance, **kw):
@@ -688,21 +700,9 @@ class License(ModelBase):
     def __unicode__(self):
         return unicode(self.name)
 
+
 models.signals.pre_save.connect(
     save_signal, sender=License, dispatch_uid='license_translations')
-
-
-class VersionComment(ModelBase):
-    """Editor comments for version discussion threads."""
-    version = models.ForeignKey(Version)
-    user = models.ForeignKey(UserProfile)
-    reply_to = models.ForeignKey(Version, related_name="reply_to",
-                                 db_column='reply_to', null=True)
-    subject = models.CharField(max_length=1000)
-    comment = models.TextField()
-
-    class Meta(ModelBase.Meta):
-        db_table = 'versioncomments'
 
 
 class ApplicationsVersions(caching.base.CachingMixin, models.Model):

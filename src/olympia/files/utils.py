@@ -3,7 +3,6 @@ import contextlib
 import glob
 import hashlib
 import json
-import logging
 import os
 import re
 import shutil
@@ -14,7 +13,7 @@ import tempfile
 import zipfile
 
 from cStringIO import StringIO as cStringIO
-from datetime import datetime
+from datetime import datetime, timedelta
 from itertools import groupby
 from xml.dom import minidom
 from zipfile import BadZipfile, ZipFile
@@ -27,17 +26,19 @@ from django.core.files.storage import (
 from django.utils.jslex import JsLexer
 from django.utils.translation import ugettext as _
 
+import flufl.lock
 import rdflib
 import waffle
 
-from olympia import amo
+import olympia.core.logger
+from olympia import amo, core
 from olympia.amo.utils import rm_local_tmp_dir, find_language, decode_json
 from olympia.applications.models import AppVersion
 from olympia.versions.compare import version_int as vint
 from olympia.lib.safe_xml import lxml
 
 
-log = logging.getLogger('z.files.utils')
+log = olympia.core.logger.getLogger('z.files.utils')
 
 
 class ParseError(forms.ValidationError):
@@ -60,6 +61,11 @@ default = (
     'locale=%APP_LOCALE%&currentAppVersion=%CURRENT_APP_VERSION%&'
     'updateType=%UPDATE_TYPE%'
 )
+
+# number of times this lock has been aquired and not yet released
+# could be helpful to debug potential race-conditions and multiple-locking
+# scenarios.
+_lock_count = {}
 
 
 def get_filepath(fileorpath):
@@ -384,6 +390,8 @@ class ManifestJSONExtractor(object):
             'is_webextension': True,
             'e10s_compatibility': amo.E10S_COMPATIBLE_WEBEXTENSION,
             'default_locale': self.get('default_locale'),
+            'permissions': self.get('permissions', []),
+            'content_scripts': self.get('content_scripts', []),
         }
 
 
@@ -391,8 +399,13 @@ def extract_search(content):
     rv = {}
     dom = minidom.parse(content)
 
-    def text(x):
-        return dom.getElementsByTagName(x)[0].childNodes[0].wholeText
+    def text(tag):
+        try:
+            return dom.getElementsByTagName(tag)[0].childNodes[0].wholeText
+        except (IndexError, AttributeError):
+            raise forms.ValidationError(
+                _('Could not parse uploaded file, missing or empty '
+                  '<%s> element') % tag)
 
     rv['name'] = text('ShortName')
     rv['description'] = text('Description')
@@ -514,6 +527,13 @@ class SafeUnzip(object):
     def close(self):
         self.zip_file.close()
 
+    @property
+    def filelist(self):
+        return self.zip_file.filelist
+
+    def read(self, filename):
+        return self.zip_file.read(filename)
+
 
 def extract_zip(source, remove=False, fatal=True):
     """Extracts the zip file. If remove is given, removes the source file."""
@@ -547,7 +567,42 @@ def copy_over(source, dest):
     shutil.rmtree(source)
 
 
-def extract_xpi(xpi, path, expand=False):
+def get_all_files(folder, strip_prefix='', prefix=None):
+    """Return all files in a file/directory tree.
+
+    :param folder: The folder of which to return the file-tree.
+    :param strip_prefix str: A string to strip in case we're adding a custom
+                             `prefix` Doesn't have any implications if
+                             `prefix` isn't given.
+    :param prefix: A custom prefix to add to all files and folders.
+    """
+
+    all_files = []
+
+    # Not using os.path.walk so we get just the right order.
+    def iterate(path):
+        path_dirs, path_files = storage.listdir(path)
+        for dirname in sorted(path_dirs):
+            full = os.path.join(path, dirname)
+            all_files.append(full)
+            iterate(full)
+
+        for filename in sorted(path_files):
+            full = os.path.join(path, filename)
+            all_files.append(full)
+
+    iterate(folder)
+
+    if prefix is not None:
+        # This is magic: strip the prefix, e.g /tmp/ and prepend the prefix
+        all_files = [
+            os.path.join(prefix, fname[len(strip_prefix) + 1:])
+            for fname in all_files]
+
+    return all_files
+
+
+def extract_xpi(xpi, path, expand=False, verify=True):
     """
     If expand is given, will look inside the expanded file
     and find anything in the allow list and try and expand it as well.
@@ -559,6 +614,7 @@ def extract_xpi(xpi, path, expand=False):
     """
     expand_allow_list = ['.crx', '.jar', '.xpi', '.zip']
     tempdir = extract_zip(xpi)
+    all_files = get_all_files(tempdir)
 
     if expand:
         for x in xrange(0, 10):
@@ -569,6 +625,8 @@ def extract_xpi(xpi, path, expand=False):
                         src = os.path.join(root, name)
                         if not os.path.isdir(src):
                             dest = extract_zip(src, remove=True, fatal=False)
+                            all_files.extend(get_all_files(
+                                dest, strip_prefix=tempdir, prefix=src))
                             if dest:
                                 copy_over(dest, src)
                                 flag = True
@@ -576,6 +634,7 @@ def extract_xpi(xpi, path, expand=False):
                 break
 
     copy_over(tempdir, path)
+    return all_files
 
 
 def parse_xpi(xpi, addon=None, check=True):
@@ -623,9 +682,10 @@ def check_xpi_info(xpi_info, addon=None):
         raise forms.ValidationError(_("Could not find an add-on ID."))
 
     if guid:
-        if amo.get_user():
+        current_user = core.get_user()
+        if current_user:
             deleted_guid_clashes = Addon.unfiltered.exclude(
-                authors__id=amo.get_user().id).filter(guid=guid)
+                authors__id=current_user.id).filter(guid=guid)
         else:
             deleted_guid_clashes = Addon.unfiltered.filter(guid=guid)
         guid_too_long = (
@@ -642,7 +702,7 @@ def check_xpi_info(xpi_info, addon=None):
             raise forms.ValidationError(msg % (guid, addon.guid))
         if (not addon and
             # Non-deleted add-ons.
-            (Addon.with_unlisted.filter(guid=guid).exists() or
+            (Addon.objects.filter(guid=guid).exists() or
              # DeniedGuid objects for legacy deletions.
              DeniedGuid.objects.filter(guid=guid).exists() or
              # Deleted add-ons that don't belong to the uploader.
@@ -677,8 +737,8 @@ def parse_addon(pkg, addon=None, check=True):
     return parsed
 
 
-def _get_hash(filename, block_size=2 ** 20, hash=hashlib.md5):
-    """Returns an MD5 hash for a filename."""
+def _get_hash(filename, block_size=2 ** 20, hash=hashlib.sha256):
+    """Returns an sha256 hash for a filename."""
     f = open(filename, 'rb')
     hash_ = hash()
     while True:
@@ -687,10 +747,6 @@ def _get_hash(filename, block_size=2 ** 20, hash=hashlib.md5):
             break
         hash_.update(data)
     return hash_.hexdigest()
-
-
-def get_md5(filename, **kw):
-    return _get_hash(filename, **kw)
 
 
 def get_sha256(filename, **kw):
@@ -1001,3 +1057,56 @@ def resolve_i18n_message(message, messages, locale, default_locale=None):
         return default['message']
 
     return message['message']
+
+
+@contextlib.contextmanager
+def atomic_lock(lock_dir, lock_name, lifetime=60):
+    """A atomic, NFS safe implementation of a file lock.
+
+    Uses `flufl.lock` under the hood. Can be used as a context manager::
+
+        with atomic_lock(settings.TMP_PATH, 'extraction-1234'):
+            extract_xpi(...)
+
+    :return: `True` if the lock was attained, we are owning the lock,
+             `False` if there is an already existing lock.
+    """
+    lock_name = lock_name + '.lock'
+    count = _lock_count.get(lock_name, 0)
+
+    log.debug('Acquiring lock %s, count is %d.' % (lock_name, count))
+
+    lock_name = os.path.join(lock_dir, lock_name)
+    lock = flufl.lock.Lock(lock_name, lifetime=timedelta(seconds=lifetime))
+
+    try:
+        # set `timeout=0` to avoid any process blocking but catch the
+        # TimeOutError raised instead.
+        lock.lock(timeout=timedelta(seconds=0))
+    except flufl.lock.AlreadyLockedError:
+        # This process already holds the lock
+        yield False
+    except flufl.lock.TimeOutError:
+        # Some other process holds the lock.
+        # Let's break the lock if it has expired. Unfortunately
+        # there's a bug in flufl.lock so let's do this manually.
+        # Bug: https://gitlab.com/warsaw/flufl.lock/merge_requests/1
+        release_time = lock._releasetime
+        max_release_time = release_time + flufl.lock._lockfile.CLOCK_SLOP
+
+        if (release_time != -1 and datetime.now() > max_release_time):
+            # Break the lock and try to aquire again
+            lock._break()
+            lock.lock(timeout=timedelta(seconds=0))
+            yield lock.is_locked
+        else:
+            # Already locked
+            yield False
+    else:
+        # Is usually `True` but just in case there were some weird `lifetime`
+        # values set we return the check if we really attained the lock.
+        yield lock.is_locked
+
+    if lock.is_locked:
+        log.debug('Releasing lock %s.' % lock.details[2])
+        lock.unlock()

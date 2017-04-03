@@ -16,8 +16,9 @@ Featured
 
 This endpoint allows you to list featured add-ons matching some parameters.
 Results are sorted randomly and therefore, the standard pagination parameters
-are not accepted. Instead, only ``page_size`` is allowed to customize the
-number of results returned.
+are not accepted. The query parameter ``page_size`` is allowed but only serves
+to customize the number of results returned, clients can not request a specific
+page.
 
 .. http:get:: /api/v3/addons/featured/
 
@@ -60,15 +61,17 @@ This endpoint allows you to search through public add-ons.
     ==============  ==========================================================
          Parameter  Description
     ==============  ==========================================================
-           created  Creation date, descending
-         downloads  Number of weekly downloads, descending
+           created  Creation date, descending.
+         downloads  Number of weekly downloads, descending.
            hotness  Hotness (average number of users progression), descending.
             rating  Bayesian rating, descending.
-           updated  Last updated date, descending
+         relevance  Search query relevance, descending.
+           updated  Last updated date, descending.
              users  Average number of daily users, descending.
     ==============  ==========================================================
 
-    The default is to sort by number of weekly downloads, descending.
+    The default is to sort by relevance if a search query (``q``) is present,
+    otherwise sort by number of weekly downloads, descending.
 
     You can combine multiple parameters by separating them with a comma.
     For instance, to sort search results by downloads and then by creation
@@ -83,9 +86,9 @@ Detail
 This endpoint allows you to fetch a specific add-on by id, slug or guid.
 
     .. note::
-        Unlisted or non-public add-ons require authentication and either
-        reviewer permissions or a user account listed as a developer of the
-        add-on.
+        Non-public add-ons, or add-ons with only unlisted versions, require
+        authentication and either reviewer permissions or a user account listed
+        as a developer of the add-on.
 
     .. note::
         This endpoint will have the add-ons it can access reduced to public
@@ -228,12 +231,14 @@ This endpoint allows you to list all versions belonging to a specific add-on.
 .. http:get:: /api/v3/addons/addon/(int:addon_id|string:addon_slug|string:addon_guid)/versions/
 
     .. note::
-        Unlisted or non-public add-ons require authentication and either
-        reviewer permissions or a user account listed as a developer of the
-        add-on.
+        Non-public add-ons, or add-ons with only unlisted versions, require
+        authentication and either reviewer permissions or a user account listed
+        as a developer of the add-on.
 
     :query string filter: The :ref:`filter <version-filtering-param>` to apply.
     :query string lang: Activate translations in the specific language for that query. (See :ref:`translated fields <api-overview-translations>`)
+    :query int page: 1-based page number. Defaults to 1.
+    :query int page_size: Maximum number of results to return for the requested page. Defaults to 25.
     :>json int count: The number of versions for this add-on.
     :>json string next: The URL of the next page of results.
     :>json string previous: The URL of the previous page of results.
@@ -285,6 +290,7 @@ This endpoint allows you to fetch a single version belonging to a specific add-o
     :>json int files[].id: The size for a file, in bytes.
     :>json int files[].status: The :ref:`status <addon-detail-status>` for a file.
     :>json string files[].url: The (absolute) URL to download a file. An optional ``src`` query parameter can be added to indicate the source page (See :ref:`download sources <download-sources>`).
+    :>json array files[].permissions[]: Array of the webextension permissions for this File, as strings.  Empty for non-webextensions.
     :>json object license: Object holding information about the license for the version.
     :>json string|object|null license.name: The name of the license (See :ref:`translated fields <api-overview-translations>`).
     :>json string|object|null license.text: The text of the license (See :ref:`translated fields <api-overview-translations>`).
@@ -306,9 +312,9 @@ a specific add-on by id, slug or guid.
 .. http:get:: /api/v3/addons/addon/(int:id|string:slug|string:guid)/feature_compatibility/
 
     .. note::
-        Unlisted or non-public add-ons require authentication and either
-        reviewer permissions or a user account listed as a developer of the
-        add-on.
+        Non-public add-ons, or add-ons with only unlisted versions, require
+        authentication and either reviewer permissions or a user account listed
+        as a developer of the add-on.
 
     :>json int e10s: The add-on e10s compatibility. Can be one of the following:
 
@@ -332,9 +338,9 @@ This endpoint allows you to fetch an add-on EULA and privacy policy.
 .. http:get:: /api/v3/addons/addon/(int:id|string:slug|string:guid)/eula_policy/
 
     .. note::
-        Unlisted or non-public add-ons require authentication and either
-        reviewer permissions or a user account listed as a developer of the
-        add-on.
+        Non-public add-ons, or add-ons with only unlisted versions, require
+        authentication and either reviewer permissions or a user account listed
+        as a developer of the add-on.
 
     :>json string|object|null eula: The text of the EULA, if present (See :ref:`translated fields <api-overview-translations>`).
     :>json string|object|null privacy_policy: The text of the Privacy Policy, if present (See :ref:`translated fields <api-overview-translations>`).

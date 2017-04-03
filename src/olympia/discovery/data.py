@@ -9,11 +9,26 @@ class DiscoItem(object):
         self.heading = kwargs.get('heading')
         self.description = kwargs.get('description')
 
+
 # At the moment the disco pane items are hardcoded in this file in the repos,
-# which allows us to integrate in our translation workflow easily.
+# which allows us to integrate in our translation workflow easily. Add-on ids
+# are used instead of slugs to prevent any accidental replacement of a deleted
+# add-on by another.
 discopane_items = [
-    # Theme: Ice Flower
-    DiscoItem(addon_id=265447),
+    # 'Tender Spring Rain' theme.
+    DiscoItem(addon_id=303865),
+
+    # Awesome Screenshot Plus
+    DiscoItem(
+        addon_id=287841,
+        heading=_(u'Take screenshots {start_sub_heading}with '
+                  u'{addon_name}{end_sub_heading}'),
+        description=string_concat(
+            '<blockquote>',
+            _(u'More than just screenshots, Awesome Screenshot Plus lets you '
+              u'annotate images with text and graphics. Storing and sharing '
+              u'files is a breeze.'),
+            '</blockquote>')),
 
     # uBlock Origin
     DiscoItem(
@@ -27,43 +42,31 @@ discopane_items = [
               u'bunch of memory.'),
             '</blockquote>')),
 
-    # Awesome Screenshot Plus - Capture, Annotate & More
+    # 'Abstract Splash' theme.
+    DiscoItem(addon_id=25725, addon_name='Abstract Splash'),
+
+    # Video DownloadHelper
     DiscoItem(
-        addon_id=287841,
-        heading=_(u'Take screenshots {start_sub_heading}with {addon_name}'
+        addon_id=3006,
+        heading=_(u'Download videos {start_sub_heading}with {addon_name}'
                   u'{end_sub_heading}'),
         description=string_concat(
             '<blockquote>',
-            _(u'So much more than just a screenshot tool, this add-on also '
-              u'lets you edit, annotate, and share images.'),
+            _(u'Easily grab videos from YouTube, Dailymotion, Facebook, and '
+              u'most other video sites with this simple download tool.'),
             '</blockquote>')),
 
-    # Theme: Les Eléphants
-    DiscoItem(addon_id=754566, addon_name=u'Les Éléphants'),
-
-    # OmniSidebar
+    # Emoji Keyboard
     DiscoItem(
-        addon_id=296534,
-        heading=_(u'Easily access bookmarks {start_sub_heading}with '
-                  u'{addon_name}{end_sub_heading}'),
+        addon_id=674732,
+        heading=_(u'Emoji expression {start_sub_heading}with {addon_name}'
+                  u'{end_sub_heading}'),
         description=string_concat(
             '<blockquote>',
-            _(u'Are you constantly scrolling through your bookmarks? '
-              u'Bring your lists into view with a single, simple gesture.'),
+            _(u'Dozens of amazing emojis for every occasion—always just one '
+              u'click away.'),
             '</blockquote>')),
 
-    # YouTube High Definition
-    DiscoItem(
-        addon_id=328839,
-        heading=_(u'Enhance YouTube {start_sub_heading}with '
-                  u'{addon_name}{end_sub_heading}'),
-        description=string_concat(
-            '<blockquote>',
-            _(u'Automatically play YouTube videos in high-def, turn off '
-              u'annotations, adjust player size, and many other ways to '
-              u'personalize your video-watching experience.'),
-            '</blockquote>')),
-
-    # Theme: My Vinyl
-    DiscoItem(addon_id=676070, addon_name=u'Owl First Snow'),
+    # 'Owls' theme.
+    DiscoItem(addon_id=558936, addon_name='Owls'),
 ]

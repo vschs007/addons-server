@@ -15,12 +15,12 @@ from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext as _, ugettext_lazy, get_language
 from django.utils.encoding import force_bytes
 
-import commonware.log
 import jingo
 import waffle
 from caching.base import cached_with
 from jingo import get_standard_processors
 
+import olympia.core.logger
 from olympia import amo, legacy_api
 from olympia.addons.models import Addon, CompatOverride
 from olympia.amo.decorators import (
@@ -28,7 +28,8 @@ from olympia.amo.decorators import (
 from olympia.amo.models import manual_order
 from olympia.amo.urlresolvers import get_url_prefix
 from olympia.amo.utils import AMOJSONEncoder
-from olympia.legacy_api.utils import addon_to_dict, extract_filters
+from olympia.legacy_api.utils import (
+    addon_to_dict, extract_filters, find_compatible_version)
 from olympia.search.views import (
     AddonSuggestionsAjax, PersonaSuggestionsAjax, name_query)
 from olympia.versions.compare import version_int
@@ -50,7 +51,7 @@ MAX_LIMIT, BUFFER = 30, 10
 # "New" is arbitrarily defined as 10 days old.
 NEW_DAYS = 10
 
-log = commonware.log.getLogger('z.api')
+log = olympia.core.logger.getLogger('z.api')
 
 
 def partition(seq, key):
@@ -178,8 +179,8 @@ def addon_filter(addons, addon_type, limit, app, platform, version,
             elif compat_mode == 'normal':
                 # This does a db hit but it's cached. This handles the cases
                 # for strict opt-in, binary components, and compat overrides.
-                v = addon.compatible_version(APP.id, version, platform,
-                                             compat_mode)
+                v = find_compatible_version(addon, APP.id, version, platform,
+                                            compat_mode)
                 if v:  # There's a compatible version.
                     addons.append(addon)
 
@@ -286,7 +287,7 @@ def guid_search(request, api_version, guids):
 
     def guid_search_cache_key(guid):
         key = 'guid_search:%s:%s:%s' % (api_version, lang, guid)
-        return hashlib.md5(force_bytes(key)).hexdigest()
+        return hashlib.sha256(force_bytes(key)).hexdigest()
 
     guids = [guid.strip() for guid in guids.split(',')] if guids else []
 
@@ -383,10 +384,10 @@ class SearchView(APIView):
 
         results = []
         for addon in qs:
-            compat_version = addon.compatible_version(app_id,
-                                                      params['version'],
-                                                      params['platform'],
-                                                      compat_mode)
+            compat_version = find_compatible_version(addon, app_id,
+                                                     params['version'],
+                                                     params['platform'],
+                                                     compat_mode)
             # Specific case for Personas (bug 990768): if we search providing
             # the Persona addon type (9), then don't look for a compatible
             # version.

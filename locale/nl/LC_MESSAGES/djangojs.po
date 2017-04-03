@@ -3,9 +3,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2016-12-01 06:45+0000\n"
-"PO-Revision-Date: 2016-10-26 12:48+0000\n"
-"Last-Translator: Mark Heijl <markh@babelzilla.org>\n"
+"POT-Creation-Date: 2017-04-03 05:29+0000\n"
+"PO-Revision-Date: 2017-03-18 12:26+0000\n"
+"Last-Translator: Ton <tonnes.mb@gmail.com>\n"
 "Language-Team: DUTCH <LL@li.org>\n"
 "Language: nl\n"
 "MIME-Version: 1.0\n"
@@ -828,7 +828,7 @@ msgstr[1] "{0} add-ons instellen op een maximumversie van {1} en een e-mailberic
 msgid "Email author of {2} add-on which failed validation."
 msgid_plural "Email authors of {2} add-ons which failed validation."
 msgstr[0] "E-mailbericht versturen naar schrijver van {2} add-on die de validatie niet heeft doorstaan."
-msgstr[1] "E-mailbericht versturen naar schrijver van {2} add-ons die de validatie niet heeft doorstaan."
+msgstr[1] "E-mailbericht versturen naar schrijvers van {2} add-ons die de validatie niet hebben doorstaan."
 
 #. L10n: {0} is an app name like Firefox.
 #: static/js/zamboni/buttons.js
@@ -1057,18 +1057,6 @@ msgstr "Gemiddelde beoordelingen"
 msgid "Number of Reviews"
 msgstr "Aantal beoordelingen"
 
-#: static/js/zamboni/editors.js
-msgid "Error loading translation"
-msgstr "Fout bij laden vertaling"
-
-#: static/js/zamboni/files.js static/js/zamboni/validator.js
-msgid "Ignore this message in future updates"
-msgstr "Dit bericht in toekomstige updates negeren"
-
-#: static/js/zamboni/files.js static/js/zamboni/validator.js
-msgid "Severity for automated signing:"
-msgstr "Ernst voor automatische ondertekening:"
-
 #: static/js/zamboni/global.js
 msgid "Loading..."
 msgstr "Laden…"
@@ -1104,7 +1092,7 @@ msgstr "Aangevraagde informatie"
 
 #: static/js/zamboni/themes_review.js
 msgid "Flagged"
-msgstr "Gelabeld"
+msgstr "Gemarkeerd"
 
 #: static/js/zamboni/themes_review.js
 msgid "Duplicate"
@@ -1153,10 +1141,6 @@ msgstr "Fout"
 #: static/js/zamboni/validator.js
 msgid "Warning"
 msgstr "Waarschuwing"
-
-#: static/js/zamboni/validator.js
-msgid "Suggestions for passing automated signing:"
-msgstr "Suggesties voor doorstaan van automatische ondertekening:"
 
 #: static/js/zamboni/validator.js
 msgid "{0} line {1} column {2}"

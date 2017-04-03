@@ -4,9 +4,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2016-12-01 06:45+0000\n"
-"PO-Revision-Date: 2016-07-31 10:46+0000\n"
-"Last-Translator: ბექა არაბული <arabulibeqa@yahoo.com>\n"
+"POT-Creation-Date: 2017-04-03 05:29+0000\n"
+"PO-Revision-Date: 2016-12-18 12:19+0000\n"
+"Last-Translator: mindaKhinzmarauli <beseliaa.design-mozilla-firefox@gmx.de>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "Language: ka\n"
 "MIME-Version: 1.0\n"
@@ -115,15 +115,15 @@ msgstr "თქვენი შენატანი ავტომატურ�
 
 #: static/js/common/upload-addon.js
 msgid "WebExtension upgrade"
-msgstr ""
+msgstr "WebExtensionგანახლება"
 
 #: static/js/common/upload-addon.js
 msgid "We allow and encourage an upgrade but you cannot reverse this process. Once your users have the WebExtension installed, they will not be able to install a legacy add-on."
-msgstr ""
+msgstr "ჩვენ გაძლევთ საშუალებას განახლება. თუმცა, ეს პროცესი არ შეიძლება შეიცვალოს. ისინი, ვინც დაყენებული WebExtension შეგიძლიათ დააყენოთ ნებისმიერი add-on."
 
 #: static/js/common/upload-addon.js
 msgid "Porting a legacy Firefox add-on on MDN"
-msgstr ""
+msgstr "Porting a legacy Firefox add-on on MDN"
 
 #: static/js/common/upload-addon.js
 msgid "Include detailed version notes (this can be done in the next step)."
@@ -257,7 +257,6 @@ msgid "Search add-ons for <b>{0}</b>"
 msgstr "<b>{0}-ს</b> ძიება დამატებებში"
 
 #: static/js/impala/users.js
-#, fuzzy
 msgid "Use original"
 msgstr "ორიგინალის გამოყენება"
 
@@ -881,13 +880,12 @@ msgid "Only with Firefox — Get Firefox Now!"
 msgstr "მხოლოდ Firefox-ზე — ჩამოტვირთეთ Firefox!"
 
 #: static/js/zamboni/buttons.js
-#, fuzzy
 msgid "Download now"
 msgstr "ჩამოტვირთვა ახლავე"
 
 #: static/js/zamboni/buttons.js
 msgid "Only available on Firefox Desktop"
-msgstr ""
+msgstr "Only available on Firefox Desktop"
 
 #: static/js/zamboni/buttons.js static/js/zamboni/mobile/buttons.js
 msgid "Sorry, you need a Mozilla-based browser (such as Firefox) to install a search plugin."
@@ -1047,18 +1045,6 @@ msgstr "განხილვების საშუალო რაოდ."
 msgid "Number of Reviews"
 msgstr "განხილვების რაოდენობა:"
 
-#: static/js/zamboni/editors.js
-msgid "Error loading translation"
-msgstr "შეცდომა თარგმანის ჩატვირთვისას"
-
-#: static/js/zamboni/files.js static/js/zamboni/validator.js
-msgid "Ignore this message in future updates"
-msgstr "ამ შეტყობინების უგულებელყოფა მომავალ განახლებებში"
-
-#: static/js/zamboni/files.js static/js/zamboni/validator.js
-msgid "Severity for automated signing:"
-msgstr "ანგარიშზე ავტომატური შესვლის გამკაცრება:"
-
 #: static/js/zamboni/global.js
 msgid "Loading..."
 msgstr "იტვირთება...."
@@ -1141,10 +1127,6 @@ msgstr "შეცდომა"
 #: static/js/zamboni/validator.js
 msgid "Warning"
 msgstr "გაფრთხილება"
-
-#: static/js/zamboni/validator.js
-msgid "Suggestions for passing automated signing:"
-msgstr "შემოთავაზებები, ანგარიშზე ავტომატურად შესვლისთვის:"
 
 #: static/js/zamboni/validator.js
 msgid "{0} line {1} column {2}"

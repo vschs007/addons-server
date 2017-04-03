@@ -8,19 +8,20 @@ from django.utils import translation
 from django.utils.translation import (
     ugettext as _, ugettext_lazy as _lazy, ungettext as ngettext)
 
-import commonware.log
 import django_tables2 as tables
 import jinja2
 import waffle
 from jingo import register
 
+import olympia.core.logger
 from olympia import amo
 from olympia.access import acl
 from olympia.access.models import GroupUser
+from olympia.activity.models import ActivityLog
 from olympia.activity.utils import send_activity_mail
 from olympia.addons.helpers import new_context
-from olympia.addons.models import Addon
-from olympia.amo.helpers import absolutify, breadcrumbs, page_title
+from olympia.addons.models import Addon, AddonApprovalsCounter
+from olympia.amo.helpers import absolutify, page_title
 from olympia.amo.urlresolvers import reverse
 from olympia.amo.utils import send_mail as amo_send_mail, to_language
 from olympia.constants.base import REVIEW_LIMITED_DELAY_HOURS
@@ -72,70 +73,9 @@ def editor_page_title(context, title=None, addon=None):
     if addon:
         title = u'%s :: %s' % (title, addon.name)
     else:
-        section = _lazy('Editor Tools')
+        section = _lazy('Reviewer Tools')
         title = u'%s :: %s' % (title, section) if title else section
     return page_title(context, title)
-
-
-@register.function
-@jinja2.contextfunction
-def editors_breadcrumbs(context, queue=None, addon=None, items=None,
-                        themes=False):
-    """
-    Wrapper function for ``breadcrumbs``. Prepends 'Editor Tools'
-    breadcrumbs.
-
-    **items**
-        list of [(url, label)] to be inserted after Add-on.
-    **addon_queue**
-        Addon object. This sets the queue by addon type or addon status.
-    **queue**
-        Explicit queue type to set.
-    """
-    crumbs = [(reverse('editors.home'), _('Editor Tools'))]
-    listed = not context.get('unlisted')
-
-    if themes:
-        crumbs.append((reverse('editors.themes.home'), _('Themes')))
-
-    if addon:
-        if listed:
-            queue = {amo.STATUS_NOMINATED: 'nominated',
-                     amo.STATUS_PUBLIC: 'pending'}.get(addon.status, 'queue')
-        else:
-            queue = 'all'
-
-    if queue:
-        if listed:
-            queues = {
-                'queue': _('Queue'),
-                'pending': _('Updates'),
-                'nominated': _('New Add-ons'),
-                'moderated': _('Moderated Reviews'),
-
-                'pending_themes': _('Pending Themes'),
-                'flagged_themes': _('Flagged Themes'),
-                'rereview_themes': _('Update Themes'),
-            }
-        else:
-            queues = {
-                'all': _('All Unlisted Add-ons'),
-            }
-
-        if items and not queue == 'queue':
-            if listed:
-                url = reverse('editors.queue_{0}'.format(queue))
-            else:
-                # Unlisted add-ons only have the 'all' list.
-                url = reverse('editors.unlisted_queue_all')
-        else:
-            # The Addon is the end of the trail.
-            url = None
-        crumbs.append((url, queues[queue]))
-
-    if items:
-        crumbs.extend(items)
-    return breadcrumbs(context, crumbs, add_default=False)
 
 
 @register.function
@@ -343,7 +283,7 @@ class ViewFullReviewQueueTable(EditorQueueTable):
         model = ViewFullReviewQueue
 
 
-log = commonware.log.getLogger('z.mailer')
+log = olympia.core.logger.getLogger('z.mailer')
 
 
 PENDING_STATUSES = (amo.STATUS_BETA, amo.STATUS_DISABLED, amo.STATUS_NULL,
@@ -419,8 +359,6 @@ class ReviewHelper(object):
             # ReviewHelper for its `handler` attribute and we don't care about
             # the actions.
             return actions
-        latest_version = addon.find_latest_version(
-            channel=amo.RELEASE_CHANNEL_LISTED)
         reviewable_because_complete = addon.status not in (
             amo.STATUS_NULL, amo.STATUS_DELETED)
         reviewable_because_admin = (
@@ -428,13 +366,13 @@ class ReviewHelper(object):
             acl.action_allowed(request, 'ReviewerAdminTools', 'View'))
         reviewable_because_submission_time = (
             not is_limited_reviewer(request) or
-            (latest_version is not None and
-                latest_version.nomination is not None and
-                (datetime.datetime.now() - latest_version.nomination >=
+            (self.version is not None and
+                self.version.nomination is not None and
+                (datetime.datetime.now() - self.version.nomination >=
                     datetime.timedelta(hours=REVIEW_LIMITED_DELAY_HOURS))))
         reviewable_because_pending = (
-            latest_version is not None and
-            len(latest_version.is_unreviewed) > 0)
+            self.version is not None and
+            len(self.version.is_unreviewed) > 0)
         if (reviewable_because_complete and
                 reviewable_because_admin and
                 reviewable_because_submission_time and
@@ -504,15 +442,11 @@ class ReviewBase(object):
         self.addon.update(**kw)
         self.version.update(reviewed=datetime.datetime.now())
 
-    def set_files(self, status, files, copy_to_mirror=False,
-                  hide_disabled_file=False):
-        """Change the files to be the new status
-        and copy, remove from the mirror as appropriate."""
+    def set_files(self, status, files, hide_disabled_file=False):
+        """Change the files to be the new status."""
         for file in files:
             file.datestatuschanged = datetime.datetime.now()
             file.reviewed = datetime.datetime.now()
-            if copy_to_mirror:
-                file.copy_to_mirror()
             if hide_disabled_file:
                 file.hide_disabled_file()
             file.status = status
@@ -531,7 +465,7 @@ class ReviewBase(object):
 
         kwargs = {'user': self.user, 'created': datetime.datetime.now(),
                   'details': details}
-        amo.log(action, *args, **kwargs)
+        ActivityLog.create(action, *args, **kwargs)
 
     def notify_email(self, template, subject, perm_setting='editor_reviewed'):
         """Notify the authors that their addon has been reviewed."""
@@ -574,16 +508,23 @@ class ReviewBase(object):
                 addon = Addon.unfiltered.get(pk=self.addon.pk)
         else:
             addon = self.addon
+        review_url_kw = {'addon_id': self.addon.pk}
+        if (self.version and
+                self.version.channel == amo.RELEASE_CHANNEL_UNLISTED):
+            review_url_kw['channel'] = 'unlisted'
         return {'name': addon.name,
                 'number': self.version.version if self.version else '',
                 'reviewer': self.user.display_name,
                 'addon_url': absolutify(addon_url),
                 'dev_versions_url': absolutify(dev_ver_url),
                 'review_url': absolutify(reverse('editors.review',
-                                                 args=[self.addon.pk],
+                                                 kwargs=review_url_kw,
                                                  add_prefix=False)),
                 'comments': self.data.get('comments'),
-                'SITE_URL': settings.SITE_URL}
+                'SITE_URL': settings.SITE_URL,
+                'legacy_addon': (
+                    not self.version.all_files[0].is_webextension
+                    if self.version else False)}
 
     def request_information(self):
         """Send a request for information to the authors."""
@@ -630,8 +571,8 @@ class ReviewAddon(ReviewBase):
 
     def process_public(self):
         """Set an addon to public."""
-        assert not self.version or (
-            self.version.channel == amo.RELEASE_CHANNEL_LISTED)
+        assert self.version.channel == amo.RELEASE_CHANNEL_LISTED
+
         # Sign addon.
         for file_ in self.files:
             sign_file(file_, settings.SIGNING_SERVER)
@@ -641,8 +582,11 @@ class ReviewAddon(ReviewBase):
 
         # Save files first, because set_addon checks to make sure there
         # is at least one public file or it won't make the addon public.
-        self.set_files(amo.STATUS_PUBLIC, self.files, copy_to_mirror=True)
+        self.set_files(amo.STATUS_PUBLIC, self.files)
         self.set_addon(status=amo.STATUS_PUBLIC)
+
+        # Increment approvals counter.
+        AddonApprovalsCounter.increment_for_addon(addon=self.addon)
 
         self.log_action(amo.LOG.APPROVE_VERSION)
         template = u'%s_to_public' % self.review_type
@@ -658,8 +602,8 @@ class ReviewAddon(ReviewBase):
 
     def process_sandbox(self):
         """Set an addon back to sandbox."""
-        assert not self.version or (
-            self.version.channel == amo.RELEASE_CHANNEL_LISTED)
+        assert self.version.channel == amo.RELEASE_CHANNEL_LISTED
+
         # Hold onto the status before we change it.
         status = self.addon.status
 
@@ -681,8 +625,8 @@ class ReviewAddon(ReviewBase):
 
     def process_super_review(self):
         """Give an addon super review."""
-        assert not self.version or (
-            self.version.channel == amo.RELEASE_CHANNEL_LISTED)
+        assert self.version.channel == amo.RELEASE_CHANNEL_LISTED
+
         self.addon.update(admin_review=True)
         self.notify_email('author_super_review',
                           u'Mozilla Add-ons: %s %s flagged for Admin Review')
@@ -698,8 +642,8 @@ class ReviewFiles(ReviewBase):
 
     def process_public(self):
         """Set an addons files to public."""
-        assert not self.version or (
-            self.version.channel == amo.RELEASE_CHANNEL_LISTED)
+        assert self.version.channel == amo.RELEASE_CHANNEL_LISTED
+
         # Sign addon.
         for file_ in self.files:
             sign_file(file_, settings.SIGNING_SERVER)
@@ -707,7 +651,10 @@ class ReviewFiles(ReviewBase):
         # Hold onto the status before we change it.
         status = self.addon.status
 
-        self.set_files(amo.STATUS_PUBLIC, self.files, copy_to_mirror=True)
+        self.set_files(amo.STATUS_PUBLIC, self.files)
+
+        # Increment approvals counter.
+        AddonApprovalsCounter.increment_for_addon(addon=self.addon)
 
         self.log_action(amo.LOG.APPROVE_VERSION)
         template = u'%s_to_public' % self.review_type
@@ -724,8 +671,8 @@ class ReviewFiles(ReviewBase):
 
     def process_sandbox(self):
         """Set an addons files to sandbox."""
-        assert not self.version or (
-            self.version.channel == amo.RELEASE_CHANNEL_LISTED)
+        assert self.version.channel == amo.RELEASE_CHANNEL_LISTED
+
         # Hold onto the status before we change it.
         status = self.addon.status
 
@@ -748,8 +695,8 @@ class ReviewFiles(ReviewBase):
 
     def process_super_review(self):
         """Give an addon super review."""
-        assert not self.version or (
-            self.version.channel == amo.RELEASE_CHANNEL_LISTED)
+        assert self.version.channel == amo.RELEASE_CHANNEL_LISTED
+
         self.addon.update(admin_review=True)
 
         self.notify_email('author_super_review',
@@ -767,13 +714,13 @@ class ReviewUnlisted(ReviewBase):
 
     def process_public(self):
         """Set an addons files to public."""
-        assert not self.version or (
-            self.version.channel == amo.RELEASE_CHANNEL_UNLISTED)
+        assert self.version.channel == amo.RELEASE_CHANNEL_UNLISTED
+
         # Sign addon.
         for file_ in self.files:
             sign_file(file_, settings.SIGNING_SERVER)
 
-        self.set_files(amo.STATUS_PUBLIC, self.files, copy_to_mirror=True)
+        self.set_files(amo.STATUS_PUBLIC, self.files)
 
         template = u'unlisted_to_reviewed_auto'
         subject = u'Mozilla Add-ons: %s %s signed and ready to download'
@@ -786,8 +733,8 @@ class ReviewUnlisted(ReviewBase):
 
     def process_super_review(self):
         """Give an addon super review."""
-        assert not self.version or (
-            self.version.channel == amo.RELEASE_CHANNEL_UNLISTED)
+        assert self.version.channel == amo.RELEASE_CHANNEL_UNLISTED
+
         self.addon.update(admin_review=True)
 
         self.notify_email('author_super_review',

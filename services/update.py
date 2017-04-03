@@ -13,7 +13,6 @@ from services.utils import mypool, settings
 # This has to be imported after the settings so statsd knows where to log to.
 from django_statsd.clients import statsd
 
-import commonware.log
 import MySQLdb as mysql
 import sqlalchemy.pool as pool
 
@@ -23,9 +22,10 @@ except ImportError:
     from olympia.versions.compare import version_int
 
 from olympia.constants import applications, base
+import olympia.core.logger
 
 from utils import (
-    APP_GUIDS, get_mirror, log_configure, PLATFORMS)
+    APP_GUIDS, get_cdn_url, log_configure, PLATFORMS)
 
 # Go configure the log.
 log_configure()
@@ -75,8 +75,8 @@ no_updates_rdf = """<?xml version="1.0"?>
 </RDF:RDF>"""
 
 
-timing_log = commonware.log.getLogger('z.timer')
-error_log = commonware.log.getLogger('z.services')
+timing_log = olympia.core.logger.getLogger('z.timer')
+error_log = olympia.core.logger.getLogger('z.services')
 
 
 class Update(object):
@@ -109,10 +109,13 @@ class Update(object):
         sql = """SELECT id, status, addontype_id, guid FROM addons
                  WHERE guid = %(guid)s AND
                        inactive = 0 AND
-                       status != %(STATUS_DELETED)s
+                       status NOT IN (%(STATUS_DELETED)s, %(STATUS_DISABLED)s)
                  LIMIT 1;"""
-        self.cursor.execute(sql, {'guid': self.data['id'],
-                                  'STATUS_DELETED': base.STATUS_DELETED})
+        self.cursor.execute(sql, {
+            'guid': self.data['id'],
+            'STATUS_DELETED': base.STATUS_DELETED,
+            'STATUS_DISABLED': base.STATUS_DISABLED,
+        })
         result = self.cursor.fetchone()
         if result is None:
             return False
@@ -135,7 +138,6 @@ class Update(object):
 
         data['STATUS_PUBLIC'] = base.STATUS_PUBLIC
         data['STATUS_BETA'] = base.STATUS_BETA
-        data['STATUS_DISABLED'] = base.STATUS_DISABLED
         data['RELEASE_CHANNEL_LISTED'] = base.RELEASE_CHANNEL_LISTED
 
         sql = ["""
@@ -270,8 +272,7 @@ class Update(object):
                 'version'],
                 list(result)))
             row['type'] = base.ADDON_SLUGS_UPDATE[row['type']]
-            row['url'] = get_mirror(data['addon_status'],
-                                    data['id'], row)
+            row['url'] = get_cdn_url(data['id'], row)
             row['appguid'] = applications.APPS_ALL[data['app_id']].guid
             data['row'] = row
             return True
@@ -356,7 +357,6 @@ def application(environ, start_response):
             output = force_bytes(update.get_rdf())
             start_response(status, update.get_headers(len(output)))
         except:
-            #mail_exception(data)
             log_exception(data)
             raise
     return [output]

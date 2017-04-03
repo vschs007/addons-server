@@ -1,11 +1,11 @@
-# 
+#
 #, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT 1.0\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2016-12-01 06:45+0000\n"
-"PO-Revision-Date: 2016-12-01 15:17+0000\n"
+"POT-Creation-Date: 2017-04-03 05:29+0000\n"
+"PO-Revision-Date: 2017-01-27 12:24+0000\n"
 "Last-Translator: Moḥend Belqasem <belkacem77@gmail.com>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "Language: kab\n"
@@ -38,7 +38,7 @@ msgstr "Ur issefk ara izegrar inek ad bdun s .zip, .xpi, .crx, .jar neɣ .xml"
 #: static/js/common/upload-addon.js
 #, python-format
 msgid "{0}% complete"
-msgstr "{0} % ifuk"
+msgstr "{0} % immed"
 
 #. L10n: "{bytes uploaded} of {total filesize}".
 #: static/js/common/upload-addon.js
@@ -64,13 +64,13 @@ msgstr "Tremdeḍ amaswaḍ amaynut n tengalt i usesfer n uzegrir inek. Tanemmir
 #: static/js/common/upload-addon.js
 msgid "Your add-on failed validation with {0} error."
 msgid_plural "Your add-on failed validation with {0} errors."
-msgstr[0] "Aseɣbel n uzegrir inek ur yeddi ara s tuccḍa {0}."
-msgstr[1] "Aseɣbel n uzegrir inek ur yeddi ara s tuccḍiwin {0}."
+msgstr[0] "Asentem n uzegrir inek ur yeddi ara s tuccḍa {0}."
+msgstr[1] "Asentem n uzegrir inek ur yeddi ara s tuccḍiwin {0}."
 
 #: static/js/common/upload-addon.js
 msgid "&hellip;and {0} more"
 msgid_plural "&hellip;and {0} more"
-msgstr[0] "&hellip; akked {0} nniḍen"
+msgstr[0] "&hellip; akked {0} ugar"
 msgstr[1] "&hellip; akked {0} nniḍen"
 
 #: static/js/common/upload-addon.js
@@ -160,7 +160,7 @@ msgstr "Akala n usentem yufa-d uguren izemren ad yawi ɣer tugin:"
 
 #: static/js/common/upload-addon.js
 msgid "Sorry, no supported platform has been found."
-msgstr "Suref-aɣ, ul d yiwet n telɣubliṭ yettusefraken ur tettwaf."
+msgstr "Suref-aɣ, ul d yiwet n twannaṭ yettusefraken ur tettwaf."
 
 #: static/js/common/upload-base.js
 msgid "The filetype you uploaded isn't recognized."
@@ -470,19 +470,19 @@ msgstr "Taggayt tagejdant n umray ifazen"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Category Landing Top Rated"
-msgstr ""
+msgstr "Taggayt tagejdant yettaszemlen seg imezwura"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Category Landing Most Popular"
-msgstr ""
+msgstr "Taggayt tagekdant yettwasnen aṭas"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Category Landing Recently Added"
-msgstr ""
+msgstr "Taggayt tagejdant yettwarnan melmi kan"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Browse Listing Featured Sort"
-msgstr ""
+msgstr "Snirem tabdart n usmizzwer n yetran"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Browse Listing Users Sort"
@@ -715,12 +715,12 @@ msgstr "Izegrar yettwaleqqmen si {0} ar {1}"
 #. L10n: {0} is an integer.
 #: static/js/impala/stats/csv_keys.js
 msgid "Reviews Written, last {0} days"
-msgstr ""
+msgstr "Izaɣanen yuran, ineggura {0} n wussan"
 
 #. L10n: both {0} and {1} are dates in YYYY-MM-DD format.
 #: static/js/impala/stats/csv_keys.js
 msgid "Reviews Written from {0} to {1}"
-msgstr ""
+msgstr "Iceggiren yuran si {0} ar {1}"
 
 #. L10n: {0} is an integer.
 #: static/js/impala/stats/csv_keys.js
@@ -755,12 +755,12 @@ msgstr "Imeltaɣen si {0} ar {1}"
 #. L10n: {0} is an integer.
 #: static/js/impala/stats/csv_keys.js
 msgid "Ratings, last {0} days"
-msgstr ""
+msgstr "Tizmilin, {0} n wussan ineggura"
 
 #. L10n: both {0} and {1} are dates in YYYY-MM-DD format.
 #: static/js/impala/stats/csv_keys.js
 msgid "Ratings from {0} to {1}"
-msgstr ""
+msgstr "Tizmilin si {0} ar {1}"
 
 #. L10n: {0} is an integer.
 #: static/js/impala/stats/csv_keys.js
@@ -816,14 +816,14 @@ msgstr "Fren di tazwara asnas"
 #: static/js/zamboni/admin_validation.js
 msgid "Set {0} add-on to a max version of {1} and email the author."
 msgid_plural "Set {0} add-ons to a max version of {1} and email the authors."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Sbadu {0} n uzegrir ar lqem afellay n {1} sakin azen imayl i umeskar."
+msgstr[1] "Sbadu {0} n izegrar ar lqem afellay n {1} sakin azen imayl i umeskar."
 
 #: static/js/zamboni/admin_validation.js
 msgid "Email author of {2} add-on which failed validation."
 msgid_plural "Email authors of {2} add-ons which failed validation."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Azen imayl i umeskar ɣef {2} n uzegrir yeccḍen deg usentem."
+msgstr[1] "Azen imayl i umeskar ɣef {2} n izegrar yeccḍen deg usentem."
 
 #. L10n: {0} is an app name like Firefox.
 #: static/js/zamboni/buttons.js
@@ -840,7 +840,7 @@ msgstr "Sider tura"
 
 #: static/js/zamboni/buttons.js
 msgid "Add-on has not been updated to support default-to-compatible."
-msgstr ""
+msgstr "Azegrir ur yettwalqem ara akken ad imṣada akked default-to-compatible."
 
 #: static/js/zamboni/buttons.js
 msgid "You need to be using Firefox 10.0 or higher."
@@ -861,7 +861,7 @@ msgstr "Sideri {0} akken yebɣu yili"
 
 #: static/js/zamboni/buttons.js
 msgid "Not available for your platform"
-msgstr "Ulac i telɣubliṭ inek"
+msgstr "Ulac i twennaṭ inek"
 
 #. L10n: {0} is an app name, {1} is the app version.
 #: static/js/zamboni/buttons.js
@@ -894,7 +894,7 @@ msgstr "Yella kan di Firefox i uselkim"
 
 #: static/js/zamboni/buttons.js static/js/zamboni/mobile/buttons.js
 msgid "Sorry, you need a Mozilla-based browser (such as Firefox) to install a search plugin."
-msgstr ""
+msgstr "Suref-aɣ, tesriḍ iminig yebnan ɣef Mozilla (am Firfefox) akken ad tesbeddeḍ azegrir n unadi."
 
 #: static/js/zamboni/collections.js
 msgid "Adding to Favorites&hellip;"
@@ -985,8 +985,8 @@ msgstr[1] "{files} ifuyla"
 #: static/js/zamboni/devhub.js
 msgid "{reviews} user review"
 msgid_plural "{reviews} user reviews"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "{reviews} acegger n useqdac"
+msgstr[1] "{reviews} iceggiren n useqdac"
 
 #: static/js/zamboni/devhub.js
 msgid "Learn more"
@@ -994,11 +994,11 @@ msgstr "Issin ugar"
 
 #: static/js/zamboni/devhub.js
 msgid "Image changes being processed"
-msgstr ""
+msgstr "Asnifel n tugniwin iteddu"
 
 #: static/js/zamboni/devhub.js
 msgid "Must be a valid e-mail address."
-msgstr ""
+msgstr "Yessefk ad yili d imayl ameɣtu."
 
 #: static/js/zamboni/devhub_search.js
 msgid "No results found."
@@ -1006,19 +1006,19 @@ msgstr "Ulac igmad yettwafen."
 
 #: static/js/zamboni/editors.js
 msgid "{name} was viewing this page first."
-msgstr ""
+msgstr "{name} yettwali di tazwara asebter-agi."
 
 #: static/js/zamboni/editors.js
 msgid "Receipt checked by app."
-msgstr ""
+msgstr "Tanfult yesneqd-itt usnas."
 
 #: static/js/zamboni/editors.js
 msgid "Receipt was not checked by app."
-msgstr ""
+msgstr "Tanfult ur tt-isenqed ara usanas."
 
 #: static/js/zamboni/editors.js
 msgid "{name} was viewing this add-on first."
-msgstr ""
+msgstr "{name} yettwali di tazwara azegrir-agi."
 
 #: static/js/zamboni/editors.js
 msgid "Loading&hellip;"
@@ -1030,7 +1030,7 @@ msgstr "Tizmilin n lqem"
 
 #: static/js/zamboni/editors.js
 msgid "Notes for Reviewers"
-msgstr ""
+msgstr "Tizmilin i yemceggiren"
 
 #: static/js/zamboni/editors.js
 msgid "No version notes found"
@@ -1042,27 +1042,15 @@ msgstr "Wali tikelt nniḍen aḍris"
 
 #: static/js/zamboni/editors.js
 msgid "Review notes found"
-msgstr ""
+msgstr "Tizmilin n ucegger ttwafent"
 
 #: static/js/zamboni/editors.js
 msgid "Average Reviews"
-msgstr ""
+msgstr "Icegggiren ilemmasen"
 
 #: static/js/zamboni/editors.js
 msgid "Number of Reviews"
-msgstr ""
-
-#: static/js/zamboni/editors.js
-msgid "Error loading translation"
-msgstr "Tuccda deg usali n tsuqilt"
-
-#: static/js/zamboni/files.js static/js/zamboni/validator.js
-msgid "Ignore this message in future updates"
-msgstr ""
-
-#: static/js/zamboni/files.js static/js/zamboni/validator.js
-msgid "Severity for automated signing:"
-msgstr ""
+msgstr "Amḍan n iceggiren"
 
 #: static/js/zamboni/global.js
 msgid "Loading..."
@@ -1077,7 +1065,7 @@ msgstr[1] "<b>{0}</b> n isekkilen ttwattun."
 
 #: static/js/zamboni/init.js
 msgid "This feature is temporarily disabled while we perform website maintenance. Please check back a little later."
-msgstr ""
+msgstr "Tamahilt-agi tensa akka tura makken nettseggim asmel web. Uɣal-d ticki. Tanemmirt-ik."
 
 #: static/js/zamboni/l10n.js
 msgid "Remove this localization"
@@ -1085,7 +1073,7 @@ msgstr "Kkes asideg agi"
 
 #: static/js/zamboni/password-strength.js
 msgid "Password strength:"
-msgstr ""
+msgstr "Tazmert n wawal uffir:"
 
 #: static/js/zamboni/password-strength.js
 msgid "At least {0} character left."
@@ -1099,7 +1087,7 @@ msgstr "Talɣut n usuter"
 
 #: static/js/zamboni/themes_review.js
 msgid "Flagged"
-msgstr ""
+msgstr "Yettwacreḍ"
 
 #: static/js/zamboni/themes_review.js
 msgid "Duplicate"
@@ -1123,7 +1111,7 @@ msgstr "Asentel"
 
 #: static/js/zamboni/themes_review_templates.js
 msgid "Reviewer"
-msgstr ""
+msgstr "Amcegger"
 
 #: static/js/zamboni/themes_review_templates.js
 msgid "Status"
@@ -1150,10 +1138,6 @@ msgid "Warning"
 msgstr "Ɣur-k"
 
 #: static/js/zamboni/validator.js
-msgid "Suggestions for passing automated signing:"
-msgstr ""
-
-#: static/js/zamboni/validator.js
 msgid "{0} line {1} column {2}"
 msgstr "{0} izirig {1} tigejdit {2}"
 
@@ -1171,7 +1155,7 @@ msgstr "Asentem n uzegrir ur yeddi ara."
 
 #: static/js/zamboni/validator.js
 msgid "Add-on passed validation."
-msgstr ""
+msgstr "Asentem n uzegrir yedda."
 
 #: static/js/zamboni/validator.js
 msgid "{0} error"
@@ -1182,18 +1166,18 @@ msgstr[1] "{0} tuccḍiwin"
 #: static/js/zamboni/validator.js
 msgid "{0} warning"
 msgid_plural "{0} warnings"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "{0} alɣu"
+msgstr[1] "{0} ilɣa"
 
 #: static/js/zamboni/validator.js
 msgid "{0} notice"
 msgid_plural "{0} notices"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "{0} tamawt"
+msgstr[1] "{0} timawin"
 
 #: static/js/zamboni/validator.js
 msgid "Validation task could not complete or completed with errors"
-msgstr ""
+msgstr "Asentem ur yezmir ara ad yemmed neɣ yemmed s tuccḍiwin"
 
 #: static/js/zamboni/validator.js
 msgid "Internal server error"
@@ -1209,7 +1193,7 @@ msgstr "Yesra lqem amaynut n {0}"
 
 #: static/js/zamboni/mobile/buttons.js
 msgid "Unreviewed"
-msgstr ""
+msgstr "Ur yettwacegger ara"
 
 #: static/js/zamboni/mobile/buttons.js
 msgid "Experimental <span>(Learn More)</span>"
@@ -1237,7 +1221,7 @@ msgstr "Asebeded..."
 
 #: static/js/zamboni/mobile/buttons.js
 msgid "This add-on has been preliminarily reviewed by Mozilla."
-msgstr ""
+msgstr "Azegrir-agi yettwacegger di tazwara sɣuṛ Mozilla."
 
 #: static/js/zamboni/mobile/buttons.js
 msgid "Keep it"

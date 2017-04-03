@@ -17,13 +17,13 @@ from olympia import amo
 from olympia.devhub import tasks as devhub_tasks
 from olympia.abuse.models import AbuseReport
 from olympia.access import acl
+from olympia.activity.models import ActivityLog, AddonLog, CommentLog
 from olympia.addons.decorators import addon_view, addon_view_factory
 from olympia.addons.models import Addon, Version
 from olympia.amo.decorators import json_view, post_required
 from olympia.amo.utils import paginate, render
 from olympia.amo.urlresolvers import reverse
 from olympia.constants.base import REVIEW_LIMITED_DELAY_HOURS
-from olympia.devhub.models import ActivityLog, AddonLog, CommentLog
 from olympia.editors import forms
 from olympia.editors.models import (
     AddonCannedResponse, EditorSubscription, EventLog, get_flags,
@@ -32,7 +32,6 @@ from olympia.editors.models import (
 from olympia.editors.helpers import (
     is_limited_reviewer, ReviewHelper, ViewFullReviewQueueTable,
     ViewPendingQueueTable, ViewUnlistedAllListTable)
-from olympia.reviews.forms import ReviewFlagFormSet
 from olympia.reviews.models import Review, ReviewFlag
 from olympia.users.models import UserProfile
 from olympia.zadmin.models import get_config, set_config
@@ -290,6 +289,7 @@ def _recent_editors(days=90):
         UserProfile.objects.filter(
             activitylog__action__in=amo.LOG_EDITOR_REVIEW_ACTION,
             activitylog__created__gt=since_date)
+        .exclude(id=settings.TASK_USER_ID)
         .order_by('display_name')
         .distinct())
     return editors
@@ -450,9 +450,7 @@ def queue_counts(type=None, unlisted=False, admin_reviewer=False,
 
     counts = {'pending': construct_query(ViewPendingQueue, **kw),
               'nominated': construct_query(ViewFullReviewQueue, **kw),
-              'moderated': (
-                  Review.objects.filter(reviewflag__isnull=False,
-                                        editorreview=1).count)}
+              'moderated': Review.objects.all().to_moderate().count}
     if unlisted:
         counts = {
             'all': (ViewUnlistedAllList.objects if admin_reviewer
@@ -484,25 +482,15 @@ def queue_pending(request):
 
 @addons_reviewer_required
 def queue_moderated(request):
-    # In addition to other checks, this only show reviews for public and
-    # listed add-ons. Unlisted add-ons typically won't have reviews anyway
-    # but they might if their status ever gets changed.
-    unlisted_channel = amo.RELEASE_CHANNEL_UNLISTED
-    rf = (Review.objects.exclude(Q(addon__isnull=True) |
-                                 Q(version__channel=unlisted_channel) |
-                                 Q(reviewflag__isnull=True))
-                        .filter(editorreview=1,
-                                addon__status__in=amo.VALID_ADDON_STATUSES)
-                        .order_by('reviewflag__created'))
-
-    page = paginate(request, rf, per_page=20)
+    qs = Review.objects.all().to_moderate().order_by('reviewflag__created')
+    page = paginate(request, qs, per_page=20)
     motd_editable = acl.action_allowed(request, 'AddonReviewerMOTD', 'Edit')
 
     flags = dict(ReviewFlag.FLAGS)
 
-    reviews_formset = ReviewFlagFormSet(request.POST or None,
-                                        queryset=page.object_list,
-                                        request=request)
+    reviews_formset = forms.ReviewFlagFormSet(request.POST or None,
+                                              queryset=page.object_list,
+                                              request=request)
 
     if request.method == 'POST':
         if reviews_formset.is_valid():
@@ -588,7 +576,8 @@ def review(request, addon, channel=None):
     if unlisted_only and not acl.check_unlisted_addons_reviewer(request):
         raise PermissionDenied
 
-    version = addon.find_latest_version_including_rejected(channel=channel)
+    version = addon.find_latest_version(
+        channel=channel, exclude=(amo.STATUS_BETA,))
 
     if not settings.ALLOW_SELF_REVIEWS and addon.has_author(request.user):
         amo.messages.warning(request, _('Self-reviews are not allowed.'))
@@ -612,7 +601,7 @@ def review(request, addon, channel=None):
         if form.cleaned_data.get('adminflag') and is_admin:
             addon.update(admin_review=False)
         amo.messages.success(request, _('Review successfully processed.'))
-        clear_review_reviewing_cache(addon.id)
+        clear_reviewing_cache(addon.id)
         return redirect(redirect_url)
 
     # Kick off validation tasks for any files in this version which don't have
@@ -687,12 +676,24 @@ def review(request, addon, channel=None):
     return render(request, 'editors/review.html', ctx)
 
 
-_review_viewing_cache_key = '%s:review_viewing:%s'
+def get_reviewing_cache_key(addon_id):
+    return '%s:review_viewing:%s' % (settings.CACHE_PREFIX, addon_id)
 
 
-def clear_review_reviewing_cache(addon_id):
-    key = _review_viewing_cache_key % (settings.CACHE_PREFIX, addon_id)
-    cache.delete(key)
+def clear_reviewing_cache(addon_id):
+    return cache.delete(get_reviewing_cache_key(addon_id))
+
+
+def get_reviewing_cache(addon_id):
+    return cache.get(get_reviewing_cache_key(addon_id))
+
+
+def set_reviewing_cache(addon_id, user_id):
+    # We want to save it for twice as long as the ping interval,
+    # just to account for latency and the like.
+    cache.set(get_reviewing_cache_key(addon_id),
+              user_id,
+              amo.EDITOR_VIEWING_INTERVAL * 2)
 
 
 @never_cache
@@ -706,12 +707,12 @@ def review_viewing(request):
     user_id = request.user.id
     current_name = ''
     is_user = 0
-    key = _review_viewing_cache_key % (settings.CACHE_PREFIX, addon_id)
+    key = get_reviewing_cache_key(addon_id)
     user_key = '%s:review_viewing_user:%s' % (settings.CACHE_PREFIX, user_id)
     interval = amo.EDITOR_VIEWING_INTERVAL
 
     # Check who is viewing.
-    currently_viewing = cache.get(key)
+    currently_viewing = get_reviewing_cache(addon_id)
 
     # If nobody is viewing or current user is, set current user as viewing
     if not currently_viewing or currently_viewing == user_id:
@@ -721,9 +722,7 @@ def review_viewing(request):
             len(review_locks) < amo.EDITOR_REVIEW_LOCK_LIMIT or
             acl.action_allowed(request, 'ReviewerAdminTools', 'View'))
         if can_lock_more_reviews or currently_viewing == user_id:
-            # We want to save it for twice as long as the ping interval,
-            # just to account for latency and the like.
-            cache.set(key, user_id, interval * 2)
+            set_reviewing_cache(addon_id, user_id)
             # Give it double expiry just to be safe.
             cache.set(user_key, set(review_locks) | {key}, interval * 4)
             currently_viewing = user_id
@@ -752,7 +751,7 @@ def queue_viewing(request):
 
     for addon_id in request.POST['addon_ids'].split(','):
         addon_id = addon_id.strip()
-        key = '%s:review_viewing:%s' % (settings.CACHE_PREFIX, addon_id)
+        key = get_reviewing_cache_key(addon_id)
         currently_viewing = cache.get(key)
         if currently_viewing and currently_viewing != user_id:
             viewing[addon_id] = (UserProfile.objects

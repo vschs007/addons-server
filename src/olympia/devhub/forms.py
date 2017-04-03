@@ -1,20 +1,20 @@
 # -*- coding: utf-8 -*-
-import json
 import os
 import socket
 
 from django import forms
 from django.conf import settings
 from django.db.models import Q
-from django.forms.models import modelformset_factory
+from django.forms.models import BaseModelFormSet, modelformset_factory
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _, ugettext_lazy as _lazy
 
-import commonware
-from quieter_formset.formset import BaseModelFormSet
+import jinja2
 
+import olympia.core.logger
 from olympia.access import acl
 from olympia import amo, paypal
+from olympia.activity.models import ActivityLog
 from olympia.amo.helpers import mark_safe_lazy
 from olympia.addons.forms import AddonFormBase
 from olympia.addons.models import (
@@ -34,10 +34,10 @@ from olympia.translations.forms import TranslationFormMixin
 from olympia.versions.models import (
     ApplicationsVersions, License, VALID_SOURCE_EXTENSIONS, Version)
 
-from . import tasks, utils
+from . import tasks
 
 
-paypal_log = commonware.log.getLogger('z.paypal')
+paypal_log = olympia.core.logger.getLogger('z.paypal')
 
 
 class AuthorForm(happyforms.ModelForm):
@@ -93,25 +93,6 @@ class DeleteForm(happyforms.Form):
         data = self.cleaned_data
         if not data['slug'] == self.addon.slug:
             raise forms.ValidationError(_('Slug incorrect.'))
-
-
-class AnnotateFileForm(happyforms.Form):
-    message = forms.CharField()
-    ignore_duplicates = forms.BooleanField(required=False)
-
-    def clean_message(self):
-        msg = self.cleaned_data['message']
-        try:
-            msg = json.loads(msg)
-        except ValueError:
-            raise forms.ValidationError(_('Invalid JSON object'))
-
-        key = utils.ValidationComparator.message_key(msg)
-        if key is None:
-            raise forms.ValidationError(
-                _('Message not eligible for annotation'))
-
-        return msg
 
 
 class LicenseRadioChoiceInput(forms.widgets.RadioChoiceInput):
@@ -225,8 +206,8 @@ class LicenseForm(AMOModelForm):
             if changed or license != self.version.license:
                 self.version.update(license=license)
                 if log:
-                    amo.log(amo.LOG.CHANGE_LICENSE, license,
-                            self.version.addon)
+                    ActivityLog.create(amo.LOG.CHANGE_LICENSE, license,
+                                       self.version.addon)
         return license
 
 
@@ -272,7 +253,8 @@ class PolicyForm(TranslationFormMixin, AMOModelForm):
                 delete_translation(self.instance, field)
 
         if 'privacy_policy' in self.changed_data:
-            amo.log(amo.LOG.CHANGE_POLICY, self.addon, self.instance)
+            ActivityLog.create(amo.LOG.CHANGE_POLICY, self.addon,
+                               self.instance)
 
         return ob
 
@@ -476,7 +458,7 @@ class BaseCompatFormSet(BaseModelFormSet):
                         [{'application': a.id} for a in apps])
         self.extra = len(amo.APP_GUIDS) - len(self.forms)
 
-        # After these changes, the foms need to be rebuilt. `forms`
+        # After these changes, the forms need to be rebuilt. `forms`
         # is a cached property, so we delete the existing cache and
         # ask for a new one to be built.
         del self.forms
@@ -562,17 +544,20 @@ class NewUploadForm(AddonUploadForm):
 
         # If we have a version reset platform choices to just those compatible.
         if self.version:
-            field = self.fields['supported_platforms']
+            platforms = self.fields['supported_platforms']
             compat_platforms = self.version.compatible_platforms().values()
-            field.choices = sorted((p.id, p.name) for p in compat_platforms)
+            platforms.choices = sorted(
+                (p.id, p.name) for p in compat_platforms)
             # Don't allow platforms we already have.
             to_exclude = set(File.objects.filter(version=self.version)
                                          .values_list('platform', flat=True))
             # Don't allow platform=ALL if we already have platform files.
             if to_exclude:
                 to_exclude.add(amo.PLATFORM_ALL.id)
-                field.choices = [p for p in field.choices
-                                 if p[0] not in to_exclude]
+                platforms.choices = [p for p in platforms.choices
+                                     if p[0] not in to_exclude]
+            # Don't show the source field for new File uploads
+            del self.fields['source']
 
     def clean(self):
         if self.version and not self.version.is_allowed_upload():
@@ -581,66 +566,32 @@ class NewUploadForm(AddonUploadForm):
 
         if not self.errors:
             self._clean_upload()
-            xpi = parse_addon(self.cleaned_data['upload'], self.addon)
+            parsed_data = parse_addon(self.cleaned_data['upload'], self.addon)
 
             if self.version:
-                if xpi['version'] != self.version.version:
+                if parsed_data['version'] != self.version.version:
                     raise forms.ValidationError(_("Version doesn't match"))
             elif self.addon:
                 # Make sure we don't already have this version.
-                version_exists = Version.unfiltered.filter(
-                    addon=self.addon, version=xpi['version']).exists()
-                if version_exists:
-                    msg = _(u'Version %s already exists, or was uploaded '
-                            u'before.')
-                    raise forms.ValidationError(msg % xpi['version'])
-        return self.cleaned_data
-
-
-class NewFileForm(AddonUploadForm):
-    platform = forms.TypedChoiceField(
-        choices=amo.SUPPORTED_PLATFORMS_CHOICES,
-        widget=forms.RadioSelect(attrs={'class': 'platform'}),
-        coerce=int,
-        # We don't want the id value of the field to be output to the user
-        # when choice is invalid. Make a generic error message instead.
-        error_messages={
-            'invalid_choice': _lazy(u'Select a valid choice. That choice is '
-                                    u'not one of the available choices.')
-        }
-    )
-    beta = forms.BooleanField(
-        required=False,
-        help_text=_lazy(u'A file with a version ending with a|alpha|b|beta and'
-                        u' an optional number is detected as beta.'))
-
-    def __init__(self, *args, **kw):
-        self.addon = kw.pop('addon')
-        self.version = kw.pop('version')
-        super(NewFileForm, self).__init__(*args, **kw)
-        # Reset platform choices to just those compatible with target app.
-        field = self.fields['platform']
-        field.choices = sorted((p.id, p.name) for p in
-                               self.version.compatible_platforms().values())
-        # Don't allow platforms we already have.
-        to_exclude = set(File.objects.filter(version=self.version)
-                                     .values_list('platform', flat=True))
-        # Don't allow platform=ALL if we already have platform files.
-        if len(to_exclude):
-            to_exclude.add(amo.PLATFORM_ALL.id)
-
-        field.choices = [p for p in field.choices if p[0] not in to_exclude]
-
-    def clean(self):
-        if not self.version.is_allowed_upload():
-            raise forms.ValidationError(
-                _('You cannot upload any more files for this version.'))
-
-        # Check for errors in the xpi.
-        if not self.errors:
-            xpi = parse_addon(self.cleaned_data['upload'], self.addon)
-            if xpi['version'] != self.version.version:
-                raise forms.ValidationError(_("Version doesn't match"))
+                existing_versions = Version.unfiltered.filter(
+                    addon=self.addon, version=parsed_data['version'])
+                if existing_versions.exists():
+                    version = existing_versions[0]
+                    if version.deleted:
+                        msg = _(u'Version {version} was uploaded before and '
+                                u'deleted.')
+                    elif version.unreviewed_files:
+                        next_url = reverse('devhub.submit.version.details',
+                                           args=[self.addon.slug, version.pk])
+                        msg = jinja2.Markup('%s <a href="%s">%s</a>' % (
+                            _(u'Version {version} already exists.'),
+                            next_url,
+                            _(u'Continue with existing upload instead?')))
+                    else:
+                        msg = _(u'Version {version} already exists.')
+                    raise forms.ValidationError(
+                        msg.format(version=parsed_data['version']))
+            self.cleaned_data['parsed_data'] = parsed_data
         return self.cleaned_data
 
 
@@ -663,26 +614,13 @@ class FileForm(happyforms.ModelForm):
                 plats.append([pid, amo.PLATFORMS[pid].name])
             self.fields['platform'].choices = plats
 
-    def clean_DELETE(self):
-        if any(self.errors):
-            return
-        delete = self.cleaned_data['DELETE']
-
-        if (delete and not self.instance.version.is_all_unreviewed):
-            error = _('You cannot delete a file once the review process has '
-                      'started.  You must delete the whole version.')
-            raise forms.ValidationError(error)
-
-        return delete
-
 
 class BaseFileFormSet(BaseModelFormSet):
 
     def clean(self):
         if any(self.errors):
             return
-        files = [f.cleaned_data for f in self.forms
-                 if not f.cleaned_data.get('DELETE', False)]
+        files = [f.cleaned_data for f in self.forms]
 
         if self.forms and 'platform' in self.forms[0].fields:
             platforms = [f['platform'] for f in files]
@@ -698,7 +636,7 @@ class BaseFileFormSet(BaseModelFormSet):
 
 
 FileFormSet = modelformset_factory(File, formset=BaseFileFormSet,
-                                   form=FileForm, can_delete=True, extra=0)
+                                   form=FileForm, can_delete=False, extra=0)
 
 
 class DescribeForm(AddonFormBase):
@@ -829,7 +767,7 @@ def DependencyFormSet(*args, **kw):
 
     # Add-ons: Required add-ons cannot include apps nor personas.
     # Apps:    Required apps cannot include any add-ons.
-    qs = (Addon.objects.reviewed().exclude(id=addon_parent.id).
+    qs = (Addon.objects.public().exclude(id=addon_parent.id).
           exclude(type__in=[amo.ADDON_PERSONA]))
 
     class _Form(happyforms.ModelForm):

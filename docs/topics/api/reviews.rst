@@ -8,18 +8,24 @@ Reviews
     may change without warning. The only authentication method available at
     the moment is :ref:`the internal one<api-auth-internal>`.
 
--------------------
-List Add-on reviews
--------------------
+------------
+List reviews
+------------
 
-.. review-list-addon:
+.. review-list:
 
-This endpoint allows you to fetch reviews for a given add-on.
+This endpoint allows you to fetch reviews for a given add-on or user. Either
+``addon`` or ``user`` query parameters are required, and they can be
+combined together.
 
-.. http:get:: /api/v3/addons/addon/(int:id|string:slug|string:guid)/reviews/
+.. http:get:: /api/v3/reviews/review/
 
+    :query string addon: The add-on id to fetch reviews from. When passed, the reviews shown will always be the latest posted by each user on this particular add-on (which means there should only be one review per user in the results).
     :query string filter: The :ref:`filter <review-filtering-param>` to apply.
-    :query int show_grouped_ratings: Whether or not to show ratings aggregates for this add-on in the response.
+    :query string user: The user id to fetch reviews from.
+    :query boolean show_grouped_ratings: Whether or not to show ratings aggregates for this add-on in the response (Use "true"/"1" as truthy values, "0"/"false" as falsy ones).
+    :query int page: 1-based page number. Defaults to 1.
+    :query int page_size: Maximum number of results to return for the requested page. Defaults to 25.
     :>json int count: The number of results for this query.
     :>json string next: The URL of the next page of results.
     :>json string previous: The URL of the previous page of results.
@@ -32,23 +38,6 @@ This endpoint allows you to fetch reviews for a given add-on.
    can change that with the ``filter=with_deleted`` query parameter, which
    requires the Addons:Edit permission.
 
-----------------------
-List reviews by a user
-----------------------
-
-.. review-list-user:
-
-This endpoint allows you to fetch reviews posted by a specific user.
-
-.. http:get:: /api/v3/accounts/account/(int:id)/reviews/
-
-    :query string filter: The :ref:`filter <review-filtering-param>` to apply.
-    :param int id: The user id.
-    :>json int count: The number of results for this query.
-    :>json string next: The URL of the next page of results.
-    :>json string previous: The URL of the previous page of results.
-    :>json array results: An array of :ref:`reviews <review-detail-object>`.
-
 ------
 Detail
 ------
@@ -57,7 +46,7 @@ Detail
 
 This endpoint allows you to fetch a review by its id.
 
-.. http:get:: /api/v3/addons/addon/(int:id|string:slug|string:guid)/reviews/(int:id)/
+.. http:get:: /api/v3/reviews/review/(int:id)/
 
     .. _review-detail-object:
 
@@ -89,12 +78,13 @@ If successful a :ref:`review object <review-detail-object>` is returned.
      Requires authentication.
 
 
-.. http:post:: /api/v3/addons/addon/(int:id|string:slug|string:guid)/reviews/
+.. http:post:: /api/v3/reviews/review/
 
+    :<json string addon: The add-on id the review applies to (required).
     :<json string|null body: The text of the review.
     :<json string|null title: The title of the review.
     :<json int rating: The rating the user wants to give as part of the review (required).
-    :<json int version: The add-on version id the review applies to.
+    :<json int version: The add-on version id the review applies to (required).
 
 ----
 Edit
@@ -111,7 +101,7 @@ If successful a :ref:`review object <review-detail-object>` is returned.
 
      Only body, title and rating are allowed for modification.
 
-.. http:patch:: /api/v3/addons/addon/(int:id|string:slug|string:guid)/reviews/(int:id)/
+.. http:patch:: /api/v3/reviews/review/(int:id)/
 
     :<json string|null body: The text of the review.
     :<json string|null title: The title of the review.
@@ -132,7 +122,7 @@ This endpoint allows you to delete an existing review by its id.
      not delete a review from somebody else if it was posted on an add-on they
      are listed as a developer of.
 
-.. http:delete:: /api/v3/addons/addon/(int:id|string:slug|string:guid)/reviews/(int:id)/
+.. http:delete:: /api/v3/reviews/review/(int:id)/
 
 
 -----
@@ -148,7 +138,7 @@ If successful a :ref:`review reply object <review-detail-object>` is returned.
      Requires authentication and either Addons:Edit permission or a user account
      listed as a developer of the add-on.
 
-.. http:post:: /api/v3/addons/addon/(int:id|string:slug|string:guid)/reviews/(int:id)/reply/
+.. http:post:: /api/v3/reviews/review/(int:id)/reply/
 
     :<json string body: The text of the reply (required).
     :<json string|null title: The title of the reply.
@@ -160,7 +150,7 @@ Flag
 
 .. review-flag:
 
-This endpoint allows you to flag an existing user review, to let an editor know
+This endpoint allows you to flag an existing user review, to let a moderator know
 that something may be wrong with it.
 
 An empty response will be returned on success.
@@ -169,7 +159,7 @@ An empty response will be returned on success.
      Requires authentication and a user account different from the one that
      posted the review.
 
-.. http:post:: /api/v3/addons/addon/(int:id|string:slug|string:guid)/reviews/(int:id)/flag/
+.. http:post:: /api/v3/reviews/review/(int:id)/flag/
 
     :<json string flag: A :ref:`constant<review-flag-constants>` describing the reason behind the flagging.
     :<json string|null note: A note to explain further the reason behind the flagging.

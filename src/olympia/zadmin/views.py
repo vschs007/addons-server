@@ -16,15 +16,16 @@ from django.utils.html import format_html
 from django.views import debug
 from django.views.decorators.cache import never_cache
 
-import commonware.log
+import olympia.core.logger
 import django_tables2 as tables
 import jinja2
 
-from olympia import amo
+from olympia import amo, core
 from olympia.amo import search
+from olympia.activity.models import ActivityLog, AddonLog
 from olympia.addons.decorators import addon_view_factory
 from olympia.addons.models import Addon, AddonUser, CompatOverride
-from olympia.amo import messages, get_user
+from olympia.amo import messages
 from olympia.amo.decorators import (
     any_permission_required, json_view, login_required, post_required)
 from olympia.amo.mail import DevEmailBackend
@@ -33,7 +34,6 @@ from olympia.amo.utils import HttpResponseSendFile, chunked, render
 from olympia.bandwagon.models import Collection
 from olympia.compat import FIREFOX_COMPAT
 from olympia.compat.models import AppCompat, CompatTotals
-from olympia.devhub.models import ActivityLog, AddonLog
 from olympia.editors.helpers import ItemStateTable
 from olympia.files.models import File, FileUpload
 from olympia.search.indexers import get_mappings as get_addons_mappings
@@ -54,7 +54,7 @@ from .models import (
     EmailPreviewTopic, ValidationJob, ValidationResultMessage,
     ValidationResultAffectedAddon)
 
-log = commonware.log.getLogger('z.zadmin')
+log = olympia.core.logger.getLogger('z.zadmin')
 
 
 @admin_required(reviewers=True)
@@ -168,7 +168,7 @@ def start_validation(request):
     form = BulkValidationForm(request.POST)
     if form.is_valid():
         job = form.save(commit=False)
-        job.creator = get_user()
+        job.creator = core.get_user()
         job.save()
         find_files(job)
         return redirect(reverse('zadmin.validation'))
@@ -273,7 +273,8 @@ class BulkValidationAffectedAddonsTable(ItemStateTable, tables.Table):
             (result.pk, reverse(
                 'devhub.bulk_compat_result',
                 args=(result.file.version.addon_id, result.pk)))
-            for result in self.results]
+            for result in self.results
+            if result.file.version.addon_id == record.addon.id]
 
         return ', '.join(
             format_html(u'<a href="{0}">{1}</a>', result[1], result[0])
@@ -299,24 +300,44 @@ def validation_summary(request, job_id):
                           ('AdminTools', 'View'),
                           ('ReviewerAdminTools', 'View')])
 def validation_summary_affected_addons(request, job_id, message_id):
-    addons = ValidationResultAffectedAddon.objects.filter(
-        validation_result_message=message_id)
+    affected_addons = list(
+        ValidationResultAffectedAddon.objects
+        .filter(
+            validation_result_message=message_id,
+            validation_result_message__validation_job=job_id))
+
+    # Get rid of duplicates
+    addon_ids = set()
+
+    for affected_addon in affected_addons:
+        if affected_addon.addon_id in addon_ids:
+            affected_addons.remove(affected_addon)
+            continue
+
+        addon_ids.add(affected_addon.addon_id)
+
     order_by = request.GET.get('sort', 'addon')
 
     results = (
         ValidationResult.objects
         .select_related('file__version')
         .filter(validation_job=job_id,
-                file__version__addon__in=[x.addon_id for x in addons]))
+                file__version__addon__in=addon_ids))
 
     table = BulkValidationAffectedAddonsTable(
         results=results,
-        data=addons, order_by=order_by)
+        data=affected_addons, order_by=order_by)
 
     page = amo.utils.paginate(request, table.rows, per_page=25)
     table.set_page(page)
+
+    message = ValidationResultMessage.objects.filter(
+        validation_job=job_id, id=message_id)[0]
     return render(request, 'zadmin/validation_summary.html',
-                  {'table': table, 'page': page})
+                  {'table': table,
+                   'page': page,
+                   'message_id': message.message_id,
+                   'message': message.message})
 
 
 @admin_required
@@ -571,7 +592,7 @@ def general_search(request, app_id, model_id):
 
 
 @admin_required(reviewers=True)
-@addon_view_factory(qs=Addon.with_unlisted.all)
+@addon_view_factory(qs=Addon.objects.all)
 def addon_manage(request, addon):
     form = AddonStatusForm(request.POST or None, instance=addon)
     pager = amo.utils.paginate(
@@ -584,7 +605,8 @@ def addon_manage(request, addon):
 
     if form.is_valid() and formset.is_valid():
         if 'status' in form.changed_data:
-            amo.log(amo.LOG.CHANGE_STATUS, addon, form.cleaned_data['status'])
+            ActivityLog.create(amo.LOG.CHANGE_STATUS, addon,
+                               form.cleaned_data['status'])
             log.info('Addon "%s" status changed to: %s' % (
                 addon.slug, form.cleaned_data['status']))
             form.save()

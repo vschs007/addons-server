@@ -2,7 +2,6 @@ import functools
 import hashlib
 import json
 import random
-import re
 import uuid
 from operator import attrgetter
 
@@ -18,11 +17,11 @@ from django.views.decorators.vary import vary_on_headers
 
 import caching.base as caching
 import jinja2
-import commonware.log
 import session_csrf
 import waffle
 from elasticsearch_dsl import Search
 from mobility.decorators import mobilized, mobile_template
+from rest_framework import serializers
 from rest_framework.decorators import detail_route
 from rest_framework.exceptions import ParseError
 from rest_framework.generics import GenericAPIView, ListAPIView
@@ -32,6 +31,7 @@ from rest_framework.settings import api_settings
 from rest_framework.viewsets import GenericViewSet
 from session_csrf import anonymous_csrf_exempt
 
+import olympia.core.logger
 from olympia import amo
 from olympia.access import acl
 from olympia.amo import messages
@@ -48,7 +48,7 @@ from olympia.constants.categories import CATEGORIES_BY_ID
 from olympia import paypal
 from olympia.api.paginator import ESPageNumberPagination
 from olympia.api.permissions import (
-    AllowAddonAuthor, AllowReadOnlyIfReviewed, AllowRelatedObjectPermissions,
+    AllowAddonAuthor, AllowReadOnlyIfPublic, AllowRelatedObjectPermissions,
     AllowReviewer, AllowReviewerUnlisted, AnyOf, GroupPermission)
 from olympia.reviews.forms import ReviewForm
 from olympia.reviews.models import Review, GroupedRating
@@ -71,8 +71,8 @@ from .serializers import (
 from .utils import get_creatured_ids, get_featured_ids
 
 
-log = commonware.log.getLogger('z.addons')
-paypal_log = commonware.log.getLogger('z.paypal')
+log = olympia.core.logger.getLogger('z.addons')
+paypal_log = olympia.core.logger.getLogger('z.paypal')
 addon_view = addon_view_factory(qs=Addon.objects.valid)
 addon_valid_disabled_pending_view = addon_view_factory(
     qs=Addon.objects.valid_and_disabled_and_pending)
@@ -474,7 +474,7 @@ def contribute(request, addon):
                                              'paykey': ''}),
                                  content_type='application/json')
 
-    contribution_uuid = hashlib.md5(str(uuid.uuid4())).hexdigest()
+    contribution_uuid = hashlib.sha256(str(uuid.uuid4())).hexdigest()
 
     if addon.charity:
         # TODO(andym): Figure out how to get this in the addon authors
@@ -546,7 +546,8 @@ def paypal_result(request, addon, status):
 @non_atomic_requests
 def license(request, addon, version=None):
     if version is not None:
-        qs = addon.versions.filter(files__status__in=amo.VALID_FILE_STATUSES)
+        qs = addon.versions.filter(channel=amo.RELEASE_CHANNEL_LISTED,
+                                   files__status__in=amo.VALID_FILE_STATUSES)
         version = get_list_or_404(qs, version=version)[0]
     else:
         version = addon.current_version
@@ -604,20 +605,15 @@ def icloud_bookmarks_redirect(request):
 
 class AddonViewSet(RetrieveModelMixin, GenericViewSet):
     permission_classes = [
-        AnyOf(AllowReadOnlyIfReviewed, AllowAddonAuthor,
+        AnyOf(AllowReadOnlyIfPublic, AllowAddonAuthor,
               AllowReviewer, AllowReviewerUnlisted),
     ]
     serializer_class = AddonSerializer
     serializer_class_with_unlisted_data = AddonSerializerWithUnlistedData
-    addon_id_pattern = re.compile(
-        # Match {uuid} or something@host.tld ("something" being optional)
-        # guids. Copied from mozilla-central XPIProvider.jsm.
-        r'^(\{[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\}'
-        r'|[a-z0-9-\._]*\@[a-z0-9-\._]+)$', re.IGNORECASE)
     # Permission classes disallow access to non-public/unlisted add-ons unless
-    # logged in as a reviewer/addon owner/admin, so the with_unlisted queryset
-    # is fine here.
-    queryset = Addon.with_unlisted.all()
+    # logged in as a reviewer/addon owner/admin, so we don't have to filter the
+    # base queryset here.
+    queryset = Addon.objects.all()
     lookup_value_regex = '[^/]+'  # Allow '.' for email-like guids.
 
     def get_queryset(self):
@@ -645,7 +641,7 @@ class AddonViewSet(RetrieveModelMixin, GenericViewSet):
             # If the identifier contains anything other than a digit, it's
             # either a slug or a guid. guids need to contain either {} or @,
             # which are invalid in a slug.
-            if self.addon_id_pattern.match(identifier):
+            if amo.ADDON_GUID_PATTERN.match(identifier):
                 lookup_field = 'guid'
             else:
                 lookup_field = 'slug'
@@ -713,8 +709,8 @@ class AddonVersionViewSet(AddonChildMixin, RetrieveModelMixin,
     serializer_class = VersionSerializer
 
     def check_permissions(self, request):
+        requested = self.request.GET.get('filter')
         if self.action == 'list':
-            requested = self.request.GET.get('filter')
             if requested == 'all_with_deleted':
                 # To see deleted versions, you need Admin:%.
                 self.permission_classes = [GroupPermission('Admin', '%')]
@@ -765,6 +761,19 @@ class AddonVersionViewSet(AddonChildMixin, RetrieveModelMixin,
     def get_queryset(self):
         """Return the right base queryset depending on the situation."""
         requested = self.request.GET.get('filter')
+        valid_filters = (
+            'all_with_deleted',
+            'all_with_unlisted',
+            'all_without_unlisted',
+            'only_beta'
+        )
+        if requested is not None:
+            if self.action != 'list':
+                raise serializers.ValidationError(
+                    'The "filter" parameter is not valid in this context.')
+            elif requested not in valid_filters:
+                raise serializers.ValidationError(
+                    'Invalid "filter" parameter specified.')
 
         # By default we restrict to valid, listed versions. Some filtering
         # options are available when listing, and in addition, when returning

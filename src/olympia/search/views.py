@@ -6,9 +6,9 @@ from django.utils.encoding import force_bytes
 from django.utils.translation import ugettext as _
 from django.views.decorators.vary import vary_on_headers
 
-import commonware.log
 from mobility.decorators import mobile_template
 
+import olympia.core.logger
 from olympia import amo
 from olympia.bandwagon.views import get_filter as get_filter_view
 from olympia.browse.views import personas_listing as personas_listing_view
@@ -26,7 +26,7 @@ from .filters import get_locale_analyzer
 DEFAULT_NUM_COLLECTIONS = 20
 DEFAULT_NUM_PERSONAS = 21  # Results appear in a grid of 3 personas x 7 rows.
 
-log = commonware.log.getLogger('z.search')
+log = olympia.core.logger.getLogger('z.search')
 
 
 def _personas(request):
@@ -163,7 +163,7 @@ class BaseAjaxSearch(object):
                 pk = None
             qs = None
             if pk:
-                qs = Addon.objects.reviewed().filter(id=int(q))
+                qs = Addon.objects.public().filter(id=int(q))
             elif len(q) > 2:
                 qs = (Addon.search_public()
                       .query(or_=name_only_query(q.lower())))
@@ -295,8 +295,7 @@ def _build_suggestions(request, cat, suggester):
 def name_only_query(q):
     d = {}
 
-    rules = {'match': {'query': q, 'boost': 3, 'analyzer': 'standard'},
-             'match': {'query': q, 'boost': 4, 'type': 'phrase'},
+    rules = {'match': {'query': q, 'boost': 4, 'type': 'phrase'},
              'fuzzy': {'value': q, 'boost': 2, 'prefix_length': 4},
              'startswith': {'value': q, 'boost': 1.5}}
     for k, v in rules.iteritems():
@@ -311,7 +310,7 @@ def name_only_query(q):
 
 
 def name_query(q):
-    # * Prefer text matches first, using the standard text analyzer (boost=3).
+    # * Prefer text matches first, using the standard text analyzer (boost=4).
     # * Then text matches, using language-specific analyzer (boost=2.5).
     # * Then try fuzzy matches ("fire bug" => firebug) (boost=2).
     # * Then look for the query as a prefix of a name (boost=1.5).

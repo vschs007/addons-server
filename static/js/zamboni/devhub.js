@@ -720,6 +720,10 @@ function initVersions() {
 
     function loadReviewHistory(div, nextLoad) {
         div.removeClass("hidden");
+        replybox = div.children('.dev-review-reply')
+        if (replybox.size() == 1) {
+            replybox[0].scrollIntoView(false);
+        }
         var token = div.data('token');
         var container = div.children('.history-container');
         container.children('.review-entry-loading').removeClass("hidden");
@@ -763,10 +767,11 @@ function initVersions() {
     }
     $('.review-history-show').click(function (e) {
         e.preventDefault();
-        var $tgt = $(this);
-        $tgt.addClass("hidden");
-        $tgt.next().removeClass("hidden");
-        loadReviewHistory($($tgt.data('div')));
+        var version = $(this).data('version')
+        var $show_link = $('#review-history-show-' + version);
+        $show_link.addClass("hidden");
+        $show_link.next().removeClass("hidden");
+        loadReviewHistory($($show_link.data('div')));
     });
     $('.review-history-hide').click(function (e) {
         e.preventDefault();
@@ -786,14 +791,19 @@ function initVersions() {
     $('.history-container .hidden').prop("style", "");
     $("time.timeago").timeago();
 
-    var $replyForm = $("#dev-review-reply-form");
-    $replyForm.submit(function (e) {
+    $(".dev-review-reply-form").submit(function (e) {
         e.preventDefault();
+        $replyForm = $(e.target)
+        if ($replyForm.children('textarea').val() == '') {
+            return false
+        }
+        var submitButton = $replyForm.children('button')
         $.ajax({
             type: 'POST',
             url: $replyForm.attr('action'),
             data: $replyForm.serialize(),
             beforeSend: function (xhr) {
+                submitButton.prop('disabled', true)
                 var token = $replyForm.data('token');
                 xhr.setRequestHeader ("Authorization", 'Bearer '+token);
             },
@@ -802,6 +812,9 @@ function initVersions() {
                 var container = historyDiv.children('.history-container');
                 addToReviewHistory([json], container, true)
                 $replyForm.children('textarea').val('')
+            },
+            complete: function() {
+                submitButton.prop('disabled', false)
             },
             dataType: 'json'
         });

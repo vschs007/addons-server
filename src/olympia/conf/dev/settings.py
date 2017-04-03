@@ -38,7 +38,6 @@ ENV = env('ENV')
 DEBUG = False
 DEBUG_PROPAGATE_EXCEPTIONS = False
 SESSION_COOKIE_SECURE = True
-CRONJOB_LOCK_PREFIX = DOMAIN
 RAISE_ON_SIGNAL_ERROR = True
 
 API_THROTTLE = False
@@ -87,8 +86,6 @@ SERVICES_DATABASE = env.db('SERVICES_DATABASE_URL')
 
 SLAVE_DATABASES = ['slave']
 
-CACHE_PREFIX = 'olympia.%s' % ENV
-KEY_PREFIX = CACHE_PREFIX
 CACHE_MIDDLEWARE_KEY_PREFIX = CACHE_PREFIX
 
 CACHES = {}
@@ -191,8 +188,6 @@ GOOGLE_ANALYTICS_CREDENTIALS = env.dict('GOOGLE_ANALYTICS_CREDENTIALS')
 GOOGLE_ANALYTICS_CREDENTIALS['user_agent'] = None
 GOOGLE_ANALYTICS_CREDENTIALS['token_expiry'] = datetime.datetime(2013, 1, 3, 1, 20, 16, 45465)  # noqa
 
-GOOGLE_API_CREDENTIALS = env('GOOGLE_API_CREDENTIALS')
-
 GEOIP_URL = 'https://geo.services.mozilla.com'
 
 AES_KEYS = env.dict('AES_KEYS')
@@ -268,6 +263,7 @@ FXA_CONFIG = {
         'profile_host': 'https://stable.dev.lcip.org/profile/v1',
         'redirect_url': 'https://amo.addons-dev.allizom.org/fxa-authenticate',
         'scope': 'profile',
+        'skip_register_redirect': True,
     },
     'local': {
         'client_id': env('DEVELOPMENT_FXA_CLIENT_ID'),
@@ -299,3 +295,6 @@ READ_ONLY = env.bool('READ_ONLY', default=False)
 RAVEN_DSN = (
     'https://5686e2a8f14446a3940c651c6a14dc73@sentry.prod.mozaws.net/75')
 RAVEN_ALLOW_LIST = ['addons-dev.allizom.org', 'addons-dev-cdn.allizom.org']
+
+GITHUB_API_USER = env('GITHUB_API_USER')
+GITHUB_API_TOKEN = env('GITHUB_API_TOKEN')

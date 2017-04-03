@@ -5,25 +5,23 @@ from subprocess import Popen, PIPE
 from django.conf import settings
 from django.db import connection
 
-import cronjobs
-import commonware.log
 import waffle
 
+import olympia.core.logger
 from olympia import amo
+from olympia.activity.models import ActivityLog
 from olympia.amo.utils import chunked
 from olympia.amo.helpers import user_media_path
 from olympia.bandwagon.models import Collection
 from olympia.constants.base import VALID_ADDON_STATUSES, VALID_FILE_STATUSES
-from olympia.devhub.models import ActivityLog
 from olympia.lib.es.utils import raise_if_reindex_in_progress
 from olympia.stats.models import Contribution
 
 from . import tasks
 
-log = commonware.log.getLogger('z.cron')
+log = olympia.core.logger.getLogger('z.cron')
 
 
-@cronjobs.register
 def gc(test_result=True):
     """Site-wide garbage collections."""
     def days_ago(days):
@@ -95,7 +93,6 @@ def gc(test_result=True):
             log.debug(line)
 
 
-@cronjobs.register
 def category_totals():
     """
     Update category counts for sidebar navigation.
@@ -121,7 +118,6 @@ def category_totals():
         VALID_FILE_STATUSES + VALID_ADDON_STATUSES)
 
 
-@cronjobs.register
 def collection_subscribers():
     """
     Collection weekly and monthly subscriber counts.
@@ -158,7 +154,6 @@ def collection_subscribers():
     """)
 
 
-@cronjobs.register
 def weekly_downloads():
     """
     Update 7-day add-on download counts.

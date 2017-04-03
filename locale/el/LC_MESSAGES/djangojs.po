@@ -3,8 +3,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: AMO-JS 0.1\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2016-12-01 06:45+0000\n"
-"PO-Revision-Date: 2016-11-15 12:56+0000\n"
+"POT-Creation-Date: 2017-04-03 05:29+0000\n"
+"PO-Revision-Date: 2017-01-05 11:38+0000\n"
 "Last-Translator: Jim Spentzos <jamesspentzos@hotmail.com>\n"
 "Language-Team: el <fiotakis@otenet.gr>, <alexandros@mioglou.me>\n"
 "Language: el\n"
@@ -58,7 +58,7 @@ msgstr "Σφάλμα με το {0}"
 
 #: static/js/common/upload-addon.js
 msgid "We have enabled a new linter to process your Add-on. Please make sure to report any issues on GitHub"
-msgstr ""
+msgstr "Έχουμε ενεργοποιήσει ένα νέο linter για επεξεργασία των προσθέτων σας. Παρακαλούμε βεβαιωθείτε ότι έχετε αναφέρει τυχόν ζητήματα στο GitHub"
 
 #: static/js/common/upload-addon.js
 msgid "Your add-on failed validation with {0} error."
@@ -95,39 +95,41 @@ msgstr "Ολοκληρώθηκε η επικύρωση του {0}"
 
 #: static/js/common/upload-addon.js
 msgid "Your add-on validation timed out, it will be manually reviewed."
-msgstr ""
+msgstr "Το χρονικό όριο επαλήθευσης του προσθέτου σας έληξε, θα γίνει χειροκίνητος έλεγχος."
 
 #: static/js/common/upload-addon.js
 msgid "Your add-on was validated with no errors and {0} warning."
 msgid_plural "Your add-on was validated with no errors and {0} warnings."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Το πρόσθετό σας επαληθεύτηκε χωρίς σφάλματα και με {0} προειδοποίηση."
+msgstr[1] "Το πρόσθετό σας επαληθεύτηκε χωρίς σφάλματα και με {0} προειδοποιήσεις."
 
 #: static/js/common/upload-addon.js
 msgid "Your add-on was validated with no errors and {0} message."
 msgid_plural "Your add-on was validated with no errors and {0} messages."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Το πρόσθετό σας επαληθεύτηκε χωρίς σφάλματα και με {0} μήνυμα."
+msgstr[1] "Το πρόσθετό σας επαληθεύτηκε χωρίς σφάλματα και με {0} μηνύματα."
 
 #: static/js/common/upload-addon.js
 msgid "Your add-on was validated with no errors or warnings."
-msgstr ""
+msgstr "Το πρόσθετό σας επαληθεύτηκε χωρίς σφάλματα ή προειδοποιήσεις."
 
 #: static/js/common/upload-addon.js
 msgid "Your submission will be automatically signed."
-msgstr ""
+msgstr "Η υποβολή σας θα υπογραφεί αυτόματα."
 
 #: static/js/common/upload-addon.js
 msgid "WebExtension upgrade"
-msgstr ""
+msgstr "Αναβάθμιση επέκτασης ιστού"
 
 #: static/js/common/upload-addon.js
 msgid "We allow and encourage an upgrade but you cannot reverse this process. Once your users have the WebExtension installed, they will not be able to install a legacy add-on."
 msgstr ""
+"Επιτρέπουμε και ενθαρρύνουμε να κάνετε μια αναβάθμιση, αλλά δεν μπορείτε να αναστρέψετε τη διαδικασία. Μόλις οι χρήστες σας αποκτήσουν το WebExtension, δεν θα μπορούν να εγκαταστήσουν ένα παλιό "
+"πρόσθετο."
 
 #: static/js/common/upload-addon.js
 msgid "Porting a legacy Firefox add-on on MDN"
-msgstr ""
+msgstr "Διαδικασία port ενός παλιού προσθέτου Firefox στο MDN"
 
 #: static/js/common/upload-addon.js
 msgid "Include detailed version notes (this can be done in the next step)."
@@ -379,19 +381,19 @@ msgstr "Διαχειριστής προσθέτων"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Add-ons Manager Promo"
-msgstr ""
+msgstr "Προωθητική ενέργεια διαχείρισης προσθέτων"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Add-ons Manager Featured"
-msgstr ""
+msgstr "Προτεινόμενα διαχείρισης προσθέτων"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Add-ons Manager Learn More"
-msgstr ""
+msgstr "Διαχείριση προσθέτων - Μάθετε περισσότερα"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Search Suggestions"
-msgstr ""
+msgstr "Προτάσεις αναζήτησης"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Search Results"
@@ -443,15 +445,15 @@ msgstr "Upsell"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Meet the Developer"
-msgstr ""
+msgstr "Γνωρίστε τον προγραμματιστή"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "User Profile"
-msgstr ""
+msgstr "Προφίλ χρήστη"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Version History"
-msgstr ""
+msgstr "Ιστορικό εκδόσεων"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Sharing"
@@ -883,7 +885,7 @@ msgstr "Προβολή άλλων εκδόσεων"
 
 #: static/js/zamboni/buttons.js
 msgid "Only with Firefox — Get Firefox Now!"
-msgstr ""
+msgstr "Μόνο με το Firefox — Λήψη του Firefox τώρα!"
 
 #: static/js/zamboni/buttons.js
 msgid "Download now"
@@ -891,7 +893,7 @@ msgstr "Λήψη τώρα"
 
 #: static/js/zamboni/buttons.js
 msgid "Only available on Firefox Desktop"
-msgstr ""
+msgstr "Διαθέσιμο μόνο στο Firefox για υπολογιστές"
 
 #: static/js/zamboni/buttons.js static/js/zamboni/mobile/buttons.js
 msgid "Sorry, you need a Mozilla-based browser (such as Firefox) to install a search plugin."
@@ -1039,31 +1041,19 @@ msgstr "Δεν βρέθηκαν σημειώσεις έκδοσης"
 
 #: static/js/zamboni/editors.js
 msgid "Review Text"
-msgstr ""
+msgstr "Κείμενο αξιολόγησης"
 
 #: static/js/zamboni/editors.js
 msgid "Review notes found"
-msgstr ""
+msgstr "Βρέθηκαν σημειώσεις αξιολόγησης"
 
 #: static/js/zamboni/editors.js
 msgid "Average Reviews"
-msgstr ""
+msgstr "Μέσες αξιολογήσεις"
 
 #: static/js/zamboni/editors.js
 msgid "Number of Reviews"
-msgstr ""
-
-#: static/js/zamboni/editors.js
-msgid "Error loading translation"
-msgstr "Σφάλμα στο φόρτωμα της μετάφρασης"
-
-#: static/js/zamboni/files.js static/js/zamboni/validator.js
-msgid "Ignore this message in future updates"
-msgstr ""
-
-#: static/js/zamboni/files.js static/js/zamboni/validator.js
-msgid "Severity for automated signing:"
-msgstr ""
+msgstr "Αριθμός αξιολογήσεων"
 
 #: static/js/zamboni/global.js
 msgid "Loading..."
@@ -1124,7 +1114,7 @@ msgstr "Θέμα"
 
 #: static/js/zamboni/themes_review_templates.js
 msgid "Reviewer"
-msgstr ""
+msgstr "Κριτικής"
 
 #: static/js/zamboni/themes_review_templates.js
 msgid "Status"
@@ -1151,12 +1141,8 @@ msgid "Warning"
 msgstr "Προειδοποίηση"
 
 #: static/js/zamboni/validator.js
-msgid "Suggestions for passing automated signing:"
-msgstr ""
-
-#: static/js/zamboni/validator.js
 msgid "{0} line {1} column {2}"
-msgstr ""
+msgstr "{0} γραμμή {1} στήλη {2}"
 
 #: static/js/zamboni/validator.js
 msgid "{0} line {1}"

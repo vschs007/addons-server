@@ -1,8 +1,12 @@
 import json
 import os
 import zipfile
-from tempfile import NamedTemporaryFile
+import tempfile
+import time
+import shutil
+from datetime import timedelta
 
+import flufl.lock
 import lxml
 import mock
 import pytest
@@ -17,9 +21,15 @@ from olympia.applications.models import AppVersion
 from olympia.files import utils
 from olympia.files.models import File
 from olympia.versions.models import Version
+from olympia.files.tests.test_helpers import get_file
 
 
 pytestmark = pytest.mark.django_db
+
+
+def _touch(fname):
+    open(fname, 'a').close()
+    os.utime(fname, None)
 
 
 def test_is_beta():
@@ -202,7 +212,7 @@ class TestManifestJSONExtractor(TestCase):
     def test_instanciate_without_data(self):
         """Without data, we load the data from the file path."""
         data = {'id': 'some-id'}
-        with NamedTemporaryFile() as file_:
+        with tempfile.NamedTemporaryFile() as file_:
             file_.write(json.dumps(data))
             file_.flush()
             mje = utils.ManifestJSONExtractor(file_.name)
@@ -512,6 +522,134 @@ def test_extract_translations_fail_silent_missing_file(read_mock, file_obj):
 
         with pytest.raises(ValueError):
             utils.extract_translations(file_obj)
+
+
+def test_get_all_files():
+    tempdir = tempfile.mkdtemp()
+
+    os.mkdir(os.path.join(tempdir, 'dir1'))
+
+    _touch(os.path.join(tempdir, 'foo1'))
+    _touch(os.path.join(tempdir, 'dir1', 'foo2'))
+
+    assert utils.get_all_files(tempdir) == [
+        os.path.join(tempdir, 'dir1'),
+        os.path.join(tempdir, 'dir1', 'foo2'),
+        os.path.join(tempdir, 'foo1'),
+    ]
+
+    shutil.rmtree(tempdir)
+    assert not os.path.exists(tempdir)
+
+
+def test_get_all_files_strip_prefix_no_prefix_silent():
+    tempdir = tempfile.mkdtemp()
+
+    os.mkdir(os.path.join(tempdir, 'dir1'))
+
+    _touch(os.path.join(tempdir, 'foo1'))
+    _touch(os.path.join(tempdir, 'dir1', 'foo2'))
+
+    # strip_prefix alone doesn't do anything.
+    assert utils.get_all_files(tempdir, strip_prefix=tempdir) == [
+        os.path.join(tempdir, 'dir1'),
+        os.path.join(tempdir, 'dir1', 'foo2'),
+        os.path.join(tempdir, 'foo1'),
+    ]
+
+
+def test_get_all_files_prefix():
+    tempdir = tempfile.mkdtemp()
+
+    os.mkdir(os.path.join(tempdir, 'dir1'))
+
+    _touch(os.path.join(tempdir, 'foo1'))
+    _touch(os.path.join(tempdir, 'dir1', 'foo2'))
+
+    # strip_prefix alone doesn't do anything.
+    assert utils.get_all_files(tempdir, prefix='/foo/bar') == [
+        '/foo/bar' + os.path.join(tempdir, 'dir1'),
+        '/foo/bar' + os.path.join(tempdir, 'dir1', 'foo2'),
+        '/foo/bar' + os.path.join(tempdir, 'foo1'),
+    ]
+
+
+def test_get_all_files_prefix_with_strip_prefix():
+    tempdir = tempfile.mkdtemp()
+
+    os.mkdir(os.path.join(tempdir, 'dir1'))
+
+    _touch(os.path.join(tempdir, 'foo1'))
+    _touch(os.path.join(tempdir, 'dir1', 'foo2'))
+
+    # strip_prefix alone doesn't do anything.
+    result = utils.get_all_files(
+        tempdir, strip_prefix=tempdir, prefix='/foo/bar')
+    assert result == [
+        os.path.join('/foo', 'bar', 'dir1'),
+        os.path.join('/foo', 'bar', 'dir1', 'foo2'),
+        os.path.join('/foo', 'bar', 'foo1'),
+    ]
+
+
+def test_atomic_lock_with():
+    lock = flufl.lock.Lock('/tmp/test-atomic-lock1.lock')
+
+    assert not lock.is_locked
+
+    lock.lock()
+
+    assert lock.is_locked
+
+    with utils.atomic_lock('/tmp/', 'test-atomic-lock1') as lock_attained:
+        assert not lock_attained
+
+    lock.unlock()
+
+    with utils.atomic_lock('/tmp/', 'test-atomic-lock1') as lock_attained:
+        assert lock_attained
+
+
+def test_atomic_lock_with_lock_attained():
+    with utils.atomic_lock('/tmp/', 'test-atomic-lock2') as lock_attained:
+        assert lock_attained
+
+
+@mock.patch.object(flufl.lock._lockfile, 'CLOCK_SLOP', timedelta(seconds=0))
+def test_atomic_lock_lifetime():
+    def _get_lock():
+        return utils.atomic_lock('/tmp/', 'test-atomic-lock3', lifetime=1)
+
+    with _get_lock() as lock_attained:
+        assert lock_attained
+
+        lock2 = flufl.lock.Lock('/tmp/test-atomic-lock3.lock')
+
+        with pytest.raises(flufl.lock.TimeOutError):
+            # We have to apply `timedelta` to actually raise an exception,
+            # otherwise `.lock()` will wait for 2 seconds and get the lock
+            # for us. We get a `TimeOutError` because we were locking
+            # with a different claim file
+            lock2.lock(timeout=timedelta(seconds=0))
+
+        with _get_lock() as lock_attained2:
+            assert not lock_attained2
+
+        time.sleep(2)
+
+        with _get_lock() as lock_attained2:
+            assert lock_attained2
+
+
+def test_parse_search_empty_shortname():
+    fname = get_file('search_empty_shortname.xml')
+
+    with pytest.raises(forms.ValidationError) as excinfo:
+        utils.parse_search(fname)
+
+    assert (
+        excinfo.value[0] ==
+        'Could not parse uploaded file, missing or empty <ShortName> element')
 
 
 class TestResolvei18nMessage(object):

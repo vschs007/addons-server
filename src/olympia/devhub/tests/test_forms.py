@@ -24,7 +24,7 @@ from olympia.files.helpers import copyfileobj
 from olympia.files.models import FileUpload
 from olympia.tags.models import Tag
 from olympia.users.models import UserProfile
-from olympia.versions.models import ApplicationsVersions, License, Version
+from olympia.versions.models import ApplicationsVersions, License
 
 
 class TestNewUploadForm(TestCase):
@@ -71,40 +71,6 @@ class TestNewUploadForm(TestCase):
         assert mock_check_xpi_info.called
 
 
-class TestNewFileForm(TestCase):
-
-    # Those three patches are so files.utils.parse_addon doesn't fail on a
-    # non-existent file even before having a chance to call check_xpi_info.
-    @mock.patch('olympia.files.utils.Extractor.parse')
-    @mock.patch('olympia.files.utils.extract_xpi', lambda xpi, path: None)
-    @mock.patch('olympia.files.utils.get_file', lambda xpi: None)
-    # This is the one we want to test.
-    @mock.patch('olympia.files.utils.check_xpi_info')
-    def test_check_xpi_called(self, mock_check_xpi_info, mock_parse):
-        """Make sure the check_xpi_info helper is called.
-
-        There's some important checks made in check_xpi_info, if we ever
-        refactor the form to not call it anymore, we need to make sure those
-        checks are run at some point.
-        """
-        mock_parse.return_value = None
-        mock_check_xpi_info.return_value = {'name': 'foo', 'type': 2}
-        upload = FileUpload.objects.create(valid=True)
-        addon = Addon.objects.create()
-        version = Version.objects.create(addon=addon)
-        version.compatible_platforms = mock.Mock()
-        version.compatible_platforms.return_value = amo.SUPPORTED_PLATFORMS
-        form = forms.NewFileForm(
-            {'upload': upload.uuid, 'supported_platforms': [1],
-             'nomination_type': amo.STATUS_NOMINATED,
-             'platform': '1'},
-            addon=addon,
-            version=version,
-            request=mock.Mock())
-        form.clean()
-        assert mock_check_xpi_info.called
-
-
 class TestContribForm(TestCase):
 
     def test_neg_suggested_amount(self):
@@ -132,7 +98,7 @@ class TestCharityForm(TestCase):
 
     def test_always_new(self):
         # Editing a charity should always produce a new row.
-        params = dict(name='name', url='http://url.com/', paypal='paypal')
+        params = {'name': 'name', 'url': 'http://url.com/', 'paypal': 'paypal'}
         charity = forms.CharityForm(params).save()
         for k, v in params.items():
             assert getattr(charity, k) == v
@@ -154,10 +120,10 @@ class TestCompatForm(TestCase):
     def test_mozilla_app(self):
         moz = amo.MOZILLA
         appver = AppVersion.objects.create(application=moz.id)
-        v = Addon.objects.get(id=3615).current_version
-        ApplicationsVersions(application=moz.id, version=v,
+        version = Addon.objects.get(id=3615).current_version
+        ApplicationsVersions(application=moz.id, version=version,
                              min=appver, max=appver).save()
-        fs = forms.CompatFormSet(None, queryset=v.apps.all())
+        fs = forms.CompatFormSet(None, queryset=version.apps.all())
         apps = [f.app for f in fs.forms]
         assert moz in apps
 

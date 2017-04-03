@@ -1,23 +1,22 @@
-import logging
-
 from django.conf import settings
 
+import olympia.core.logger
 from olympia.accounts.views import LoginBaseView, LoginStartBaseView
 from olympia.addons.models import Addon
 from olympia.addons.views import AddonViewSet, AddonSearchView
 from olympia.addons.serializers import (
     AddonSerializerWithUnlistedData, ESAddonSerializerWithUnlistedData)
-from olympia.api.authentication import JSONWebTokenAuthentication
+from olympia.api.authentication import WebTokenAuthentication
 from olympia.api.permissions import AnyOf, GroupPermission
 from olympia.search.filters import (
     InternalSearchParameterFilter, SearchQueryFilter, SortingFilter)
 
-log = logging.getLogger('internal_tools')
+log = olympia.core.logger.getLogger('internal_tools')
 
 
 class InternalAddonSearchView(AddonSearchView):
     # AddonSearchView disables auth classes so we need to add it back.
-    authentication_classes = [JSONWebTokenAuthentication]
+    authentication_classes = [WebTokenAuthentication]
 
     # Similar to AddonSearchView but without the ReviewedContentFilter (
     # allowing unlisted, deleted, unreviewed addons to show up) and with

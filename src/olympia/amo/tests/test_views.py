@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
+import json
 import random
 
 from django import test
@@ -7,12 +8,13 @@ from django.conf import settings
 from django.test.testcases import TransactionTestCase
 from django.test.utils import override_settings
 
-import commonware.log
+from Cookie import SimpleCookie
 from lxml import etree
 import mock
 from mock import patch
 from pyquery import PyQuery as pq
 
+from olympia import core
 from olympia.amo.tests import TestCase
 from olympia.access import acl
 from olympia.access.models import Group, GroupUser
@@ -56,6 +58,25 @@ class Test404(TestCase):
         self.assertTemplateUsed(res, 'amo/404.html')
         links = pq(res.content)('[role=main] ul a[href^="/en-US/thunderbird"]')
         assert links.length == 4
+
+    def test_404_api(self):
+        response = self.client.get('/api/v3/lol')
+        assert response.status_code == 404
+        data = json.loads(response.content)
+        assert data['detail'] == u'Not found.'
+
+    def test_404_with_mamo_cookie(self):
+        self.client.cookies = SimpleCookie({'mamo': 'on'})
+        res = self.client.get('/en-US/firefox/xxxxxxx')
+        assert res.status_code == 404
+        self.assertTemplateUsed(res, 'amo/404-responsive.html')
+
+    def test_404_with_mobile_ua_string(self):
+        res = self.client.get('/en-US/firefox/xxxxxxx', **{
+            'HTTP_USER_AGENT': ('Mozilla/5.0 (Android 4.4; Mobile; '
+                                'rv:41.0) Gecko/41.0 Firefox/41.0')})
+        assert res.status_code == 404
+        self.assertTemplateUsed(res, 'amo/404-responsive.html')
 
 
 class TestCommon(TestCase):
@@ -119,7 +140,7 @@ class TestCommon(TestCase):
             ('Submit a New Theme', reverse('devhub.themes.submit')),
             ('Developer Hub', reverse('devhub.index')),
             ('Manage API Keys', reverse('devhub.api_key')),
-            ('Editor Tools', reverse('editors.home')),
+            ('Reviewer Tools', reverse('editors.home')),
         ]
         check_links(expected, pq(r.content)('#aux-nav .tools a'), verify=False)
 
@@ -140,7 +161,7 @@ class TestCommon(TestCase):
             ('Submit a New Theme', reverse('devhub.themes.submit')),
             ('Developer Hub', reverse('devhub.index')),
             ('Manage API Keys', reverse('devhub.api_key')),
-            ('Editor Tools', reverse('editors.home')),
+            ('Reviewer Tools', reverse('editors.home')),
         ]
         check_links(expected, pq(r.content)('#aux-nav .tools a'), verify=False)
 
@@ -159,7 +180,7 @@ class TestCommon(TestCase):
             ('Submit a New Theme', reverse('devhub.themes.submit')),
             ('Developer Hub', reverse('devhub.index')),
             ('Manage API Keys', reverse('devhub.api_key')),
-            ('Editor Tools', reverse('editors.home')),
+            ('Reviewer Tools', reverse('editors.home')),
             ('Admin Tools', reverse('zadmin.home')),
         ]
         check_links(expected, pq(r.content)('#aux-nav .tools a'), verify=False)
@@ -183,7 +204,7 @@ class TestCommon(TestCase):
             ('Submit a New Theme', reverse('devhub.themes.submit')),
             ('Developer Hub', reverse('devhub.index')),
             ('Manage API Keys', reverse('devhub.api_key')),
-            ('Editor Tools', reverse('editors.home')),
+            ('Reviewer Tools', reverse('editors.home')),
             ('Admin Tools', reverse('zadmin.home')),
         ]
         check_links(expected, pq(r.content)('#aux-nav .tools a'), verify=False)
@@ -260,13 +281,17 @@ class TestOtherStuff(TestCase):
         assert doc('input[type=hidden][name=bar]').attr('value') == 'barval'
 
     @patch.object(settings, 'KNOWN_PROXIES', ['127.0.0.1'])
-    def test_remote_addr(self):
+    @patch.object(core, 'set_remote_addr')
+    def test_remote_addr(self, set_remote_addr_mock):
         """Make sure we're setting REMOTE_ADDR from X_FORWARDED_FOR."""
         client = test.Client()
         # Send X-Forwarded-For as it shows up in a wsgi request.
         client.get('/en-US/firefox/', follow=True,
-                   HTTP_X_FORWARDED_FOR='1.1.1.1')
-        assert commonware.log.get_remote_addr() == '1.1.1.1'
+                   HTTP_X_FORWARDED_FOR='1.1.1.1',
+                   REMOTE_ADDR='127.0.0.1')
+        assert set_remote_addr_mock.call_count == 2
+        assert set_remote_addr_mock.call_args_list[0] == (('1.1.1.1',), {})
+        assert set_remote_addr_mock.call_args_list[1] == ((None,), {})
 
     @patch.object(settings, 'CDN_HOST', 'https://cdn.example.com')
     def test_jsi18n_caching_and_cdn(self):

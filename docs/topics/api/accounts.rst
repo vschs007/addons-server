@@ -60,7 +60,8 @@ This allows you to generate a new user account and sign in as that user.
 .. important::
 
     * Your API user must be in the ``Accounts:SuperCreate`` group to access
-      this endpoint.
+      this endpoint. Use ``manage.py createsuperuser --add-to-supercreate-group``
+      to create a superuser with proper access.
     * This endpoint is not available in all
       :ref:`API environments <api-environments>`.
 
@@ -81,7 +82,7 @@ This allows you to generate a new user account and sign in as that user.
     :param group:
         assign the user to a permission group. Valid choices:
 
-        - **reviewer**: can access add-on reviewer pages, AKA Editor Tools
+        - **reviewer**: can access add-on reviewer pages, formerly known as Editor Tools
         - **admin**: can access any protected page
 
 
@@ -120,3 +121,33 @@ This allows you to generate a new user account and sign in as that user.
         curl --cookie sessionid=... -s -D - \
             "https://addons.mozilla.org/en-US/developers/addon/submit/1" \
             -o /dev/null
+
+.. _`session`:
+
+-------
+Session
+-------
+
+Log out of the current session. This is for use with the
+:ref:`internal authentication <api-auth-internal>` that authenticates browser
+sessions.
+
+.. http:delete:: /api/v3/accounts/session/
+
+    **Request:**
+
+    .. sourcecode:: bash
+
+        curl "https://addons.mozilla.org/api/v3/accounts/session/"
+            -H "Authorization: Bearer <jwt-token>" -X DELETE
+
+    **Response:**
+
+    .. sourcecode:: json
+
+        {
+            "ok": true
+        }
+
+    :statuscode 200: session logged out.
+    :statuscode 401: authentication failed.

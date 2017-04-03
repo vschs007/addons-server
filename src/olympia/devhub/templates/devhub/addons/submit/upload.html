@@ -7,7 +7,7 @@
 <form method="post" id="create-addon" class="item new-addon-file" enctype="multipart/form-data"
     data-addon-is-listed="{% if listed %}true{% else %}false{% endif %}">
   {{ csrf() }}
-  {% if submit_page in ['version', 'file'] and waffle.switch('mixed-listed-unlisted')%}
+  {% if submit_page in ['version', 'file']%}
     {% if submit_page == 'file' %}
         <h3>{{ _('Where to Host File') }}</h3>
     {% else %}
@@ -56,7 +56,9 @@
 
   {{ new_addon_form.non_field_errors() }}
 
-  {{ source_form_field(new_addon_form.source) }}
+  {% if submit_page != 'file' %}
+    {{ source_form_field(new_addon_form.source) }}
+  {% endif %}
 
     <div class="platform">
       <div class="supported-platforms">
@@ -66,10 +68,11 @@
       </div>
 
     </div>
-    {% if submit_page == 'version' %}
+    {% if submit_page == 'version' and addon.status == amo.STATUS_PUBLIC %}
       <div class="beta-status hide">
-        <label>{{ new_addon_form.beta }} {{ _('Only publish this version to my beta channel.') }}</label>
+        <label>{{ new_addon_form.beta }} {{ _('Only publish this version to my beta channel.') }}
         <span class="tip tooltip" title="{{ new_addon_form.beta.help_text }}">?</span>
+        </label>
       </div>
     {% endif %}
     {% if is_admin %}
@@ -89,7 +92,7 @@
           {% if submit_page != 'file' %}
             {{ _('Continue') }}
           {% else %}
-            {{ _('Submit File for Review') }}
+            {{ _('Submit File') }}
           {% endif %}
         {% else %}
             {{ _('Sign Add-on') }}

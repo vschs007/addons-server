@@ -7,9 +7,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: REMORA 0.1\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2016-12-01 06:45+0000\n"
-"PO-Revision-Date: 2016-10-25 18:54+0000\n"
-"Last-Translator: Sphinx / Julien G <sphinx_knight@hotmail.fr>\n"
+"POT-Creation-Date: 2017-04-03 05:29+0000\n"
+"PO-Revision-Date: 2017-01-17 03:30+0000\n"
+"Last-Translator: Théo Chevalier <theo.chevalier11@gmail.com>\n"
 "Language-Team: français <>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
@@ -158,7 +158,7 @@ msgid ""
 "Compiled binaries, as well as minified or obfuscated scripts (excluding known libraries) need to have their sources submitted separately for review. Make sure that you use the source code upload "
 "field to avoid having your submission rejected."
 msgstr ""
-"Les fichiers sources des fichiers binaires compilés, des scripts minifiés ou obfusqués (à l’exception des bibliothèques connues) doivent être envoyés pour être revus séparément. Assurez-vous "
+"Les fichiers sources des fichiers binaires compilés, des scripts minifiés ou compactés (à l’exception des bibliothèques connues) doivent être envoyés pour être revus séparément. Assurez-vous "
 "d’utiliser le champ permettant d’envoyer le code source pour éviter que votre envoi soit rejeté."
 
 #: static/js/common/upload-addon.js
@@ -1059,18 +1059,6 @@ msgstr "Revues moyennes"
 msgid "Number of Reviews"
 msgstr "Nombre de revues"
 
-#: static/js/zamboni/editors.js
-msgid "Error loading translation"
-msgstr "Erreur au chargement de la traduction"
-
-#: static/js/zamboni/files.js static/js/zamboni/validator.js
-msgid "Ignore this message in future updates"
-msgstr "Ignorer ce message lors de futures mises à jour"
-
-#: static/js/zamboni/files.js static/js/zamboni/validator.js
-msgid "Severity for automated signing:"
-msgstr "Degré d’acceptation pour la signature automatique :"
-
 #: static/js/zamboni/global.js
 msgid "Loading..."
 msgstr "Chargement ..."
@@ -1155,10 +1143,6 @@ msgstr "Erreur"
 #: static/js/zamboni/validator.js
 msgid "Warning"
 msgstr "Avertissement"
-
-#: static/js/zamboni/validator.js
-msgid "Suggestions for passing automated signing:"
-msgstr "Suggestions pour obtenir la signature automatique :"
 
 #: static/js/zamboni/validator.js
 msgid "{0} line {1} column {2}"

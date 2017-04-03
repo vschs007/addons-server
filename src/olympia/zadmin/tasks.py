@@ -1,5 +1,4 @@
 import collections
-import logging
 import os
 import re
 import sys
@@ -18,25 +17,27 @@ from django.utils import translation
 
 import requests
 
-from olympia import amo
-from olympia.addons.models import Addon, AddonUser
-from olympia.amo import set_user
+import olympia.core.logger
+from olympia import amo, core
+from olympia.activity.models import ActivityLog
+from olympia.addons.models import Addon, AddonCategory, AddonUser, Category
 from olympia.amo.celery import task
 from olympia.amo.decorators import write
 from olympia.amo.helpers import absolutify
 from olympia.amo.urlresolvers import reverse
 from olympia.amo.utils import chunked, send_mail, sorted_groupby
+from olympia.constants.categories import CATEGORIES
 from olympia.devhub.tasks import run_validator
 from olympia.files.models import FileUpload
 from olympia.files.utils import parse_addon
 from olympia.lib.crypto.packaged import sign_file
 from olympia.users.models import UserProfile
 from olympia.users.utils import get_task_user
-from olympia.versions.models import Version
+from olympia.versions.models import License, Version
 from olympia.zadmin.models import (
     EmailPreviewTopic, ValidationJob, ValidationResult)
 
-log = logging.getLogger('z.task')
+log = olympia.core.logger.getLogger('z.task')
 
 
 @task(rate_limit='3/s')
@@ -193,7 +194,7 @@ def update_maxversions(version_pks, job_pk, data, **kw):
     log.info('[%s@%s] Updating max version for job %s.'
              % (len(version_pks), update_maxversions.rate_limit, job_pk))
     job = ValidationJob.objects.get(pk=job_pk)
-    set_user(get_task_user())
+    core.set_user(get_task_user())
     dry_run = data['preview_only']
     app_id = job.target_version.application
     stats = collections.defaultdict(int)
@@ -227,11 +228,12 @@ def update_maxversions(version_pks, job_pk, data, **kw):
             app.max = job.target_version
             if not dry_run:
                 app.save()
-                amo.log(amo.LOG.MAX_APPVERSION_UPDATED,
-                        version.addon, version,
-                        details={'version': version.version,
-                                 'target': job.target_version.version,
-                                 'application': app_id})
+                ActivityLog.create(
+                    amo.LOG.MAX_APPVERSION_UPDATED,
+                    version.addon, version,
+                    details={'version': version.version,
+                             'target': job.target_version.version,
+                             'application': app_id})
 
     log.info('[%s@%s] bulk update stats for job %s: {%s}'
              % (len(version_pks), update_maxversions.rate_limit, job_pk,
@@ -346,7 +348,7 @@ def notify_compatibility(job, params):
 def notify_compatibility_chunk(users, job, data, **kw):
     log.info('[%s@%s] Sending notification mail for job %s.'
              % (len(users), notify_compatibility.rate_limit, job.pk))
-    set_user(get_task_user())
+    core.set_user(get_task_user())
     dry_run = data['preview_only']
     app_id = job.target_version.application
     stats = collections.defaultdict(int)
@@ -400,7 +402,7 @@ def notify_compatibility_chunk(users, job, data, **kw):
             else:
                 stats['author_emailed'] += 1
                 send_mail(*args, **kwargs)
-                amo.log(
+                ActivityLog.create(
                     amo.LOG.BULK_VALIDATION_USER_EMAILED,
                     user,
                     details={'passing': [a.id for a in user.passing_addons],
@@ -573,11 +575,11 @@ def fetch_langpack(url, xpi, **kw):
                             u'name {old_name!r} already exists, trying '
                             u'{name!r}.'.format(**data))
 
-            addon = Addon.from_upload(upload, [amo.PLATFORM_ALL.id], data=data)
+            addon = Addon.from_upload(
+                upload, [amo.PLATFORM_ALL.id], parsed_data=data)
             AddonUser(addon=addon, user=owner).save()
             version = addon.versions.get()
 
-            addon.status = amo.STATUS_PUBLIC
             if addon.default_locale.lower() == lang.lower():
                 addon.target_locale = addon.default_locale
 
@@ -586,6 +588,25 @@ def fetch_langpack(url, xpi, **kw):
             log.info('[@None] Created new "{0}" language pack, version {1}'
                      .format(xpi, data['version']))
 
+        # Set the category
+        for app in version.compatible_apps:
+            static_category = (
+                CATEGORIES.get(app.id, []).get(amo.ADDON_LPAPP, [])
+                .get('general'))
+            if static_category:
+                category, _ = Category.objects.get_or_create(
+                    id=static_category.id, defaults=static_category.__dict__)
+                AddonCategory.objects.get_or_create(
+                    addon=addon, category=category)
+
+        # Clear potentially outdated categories cached_property on Addon.
+        del addon.all_categories
+
+        # Add a license if there isn't one already
+        if not version.license:
+            license = License.objects.builtins().get(builtin=1)
+            version.update(license=license)
+
         file_ = version.files.get()
         if not is_beta:
             # Not `version.files.update`, because we need to trigger save
@@ -593,7 +614,10 @@ def fetch_langpack(url, xpi, **kw):
             file_.update(status=amo.STATUS_PUBLIC)
         sign_file(file_, settings.SIGNING_SERVER)
 
-        addon.update_version()
+        # Finally, set the addon summary if one wasn't provided in the xpi.
+        addon.update(status=amo.STATUS_PUBLIC,
+                     summary=(addon.summary if addon.summary else addon.name))
+        addon.update_status()
 
 
 @task

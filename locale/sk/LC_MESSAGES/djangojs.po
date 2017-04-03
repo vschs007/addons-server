@@ -3,8 +3,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: AMO-JS 0.1\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2016-12-01 06:45+0000\n"
-"PO-Revision-Date: 2016-11-10 18:46+0000\n"
+"POT-Creation-Date: 2017-04-03 05:29+0000\n"
+"PO-Revision-Date: 2017-03-21 21:28+0000\n"
 "Last-Translator: Juraj Cigáň <kusavica@gmail.com>\n"
 "Language-Team: Mozilla.sk <l10n@mozilla.sk>\n"
 "Language: sk\n"
@@ -124,15 +124,17 @@ msgstr "Vaše doplnky odoslané na kontrolu budú automaticky podpísané."
 
 #: static/js/common/upload-addon.js
 msgid "WebExtension upgrade"
-msgstr ""
+msgstr "Prechod na WebExtension"
 
 #: static/js/common/upload-addon.js
 msgid "We allow and encourage an upgrade but you cannot reverse this process. Once your users have the WebExtension installed, they will not be able to install a legacy add-on."
 msgstr ""
+"Povoľujeme a odporúčame prechod na novšiu verziu, ale tento proces nie je možne vrátiť. Keď si používatelia nainštalujú WebExtension verziu, nebudú si môcť nainštalovať predchádzajúce verzie vášho "
+"doplnku."
 
 #: static/js/common/upload-addon.js
 msgid "Porting a legacy Firefox add-on on MDN"
-msgstr ""
+msgstr "Prenos zastaraných doplnkov Firefoxu na MDN"
 
 #: static/js/common/upload-addon.js
 msgid "Include detailed version notes (this can be done in the next step)."
@@ -1060,18 +1062,6 @@ msgstr "Priemerné hodnotenie"
 msgid "Number of Reviews"
 msgstr "Počet hodnotení"
 
-#: static/js/zamboni/editors.js
-msgid "Error loading translation"
-msgstr "Chyba pri načítaní prekladu"
-
-#: static/js/zamboni/files.js static/js/zamboni/validator.js
-msgid "Ignore this message in future updates"
-msgstr "Ignorovať toto hlásenie pri ďalších aktualizáciách"
-
-#: static/js/zamboni/files.js static/js/zamboni/validator.js
-msgid "Severity for automated signing:"
-msgstr "Závažnosť pre automatické podpisovanie:"
-
 #: static/js/zamboni/global.js
 msgid "Loading..."
 msgstr "Načítava sa..."
@@ -1158,10 +1148,6 @@ msgstr "Chyba"
 #: static/js/zamboni/validator.js
 msgid "Warning"
 msgstr "Upozornenie"
-
-#: static/js/zamboni/validator.js
-msgid "Suggestions for passing automated signing:"
-msgstr "Odporúčania k úspešnému dokončeniu automatického podpísania:"
 
 #: static/js/zamboni/validator.js
 msgid "{0} line {1} column {2}"

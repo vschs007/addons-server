@@ -13,18 +13,18 @@ class TestDiscoveryViewList(TestCase):
 
         # Represents a dummy version of `olympia.discovery.data`
         self.addons = {
-            265447: addon_factory(
-                id=265447, type=amo.ADDON_PERSONA,
+            303865: addon_factory(
+                id=303865, type=amo.ADDON_PERSONA,
                 users=[user_factory(), user_factory()]),
-            607454: addon_factory(id=607454, type=amo.ADDON_EXTENSION),
             287841: addon_factory(id=287841, type=amo.ADDON_EXTENSION),
-            754566: addon_factory(
-                id=754566, type=amo.ADDON_PERSONA,
+            607454: addon_factory(id=607454, type=amo.ADDON_EXTENSION),
+            25725: addon_factory(
+                id=25725, type=amo.ADDON_PERSONA,
                 users=[user_factory(), user_factory()]),
-            296534: addon_factory(id=296534, type=amo.ADDON_EXTENSION),
-            328839: addon_factory(id=328839, type=amo.ADDON_EXTENSION),
-            676070: addon_factory(
-                id=676070, type=amo.ADDON_PERSONA,
+            3006: addon_factory(id=3006, type=amo.ADDON_EXTENSION),
+            674732: addon_factory(id=674732, type=amo.ADDON_EXTENSION),
+            558936: addon_factory(
+                id=558936, type=amo.ADDON_PERSONA,
                 users=[user_factory(), user_factory()]),
         }
 
@@ -91,13 +91,13 @@ class TestDiscoveryViewList(TestCase):
         assert response.data['results']
 
     def test_missing_addon(self):
-        addon_deleted = self.addons[287841]
+        addon_deleted = self.addons[303865]
         addon_deleted.delete()
 
-        theme_disabled_by_user = self.addons[754566]
-        theme_disabled_by_user.update(disabled_by_user=True)
+        disabled_by_user = self.addons[287841]
+        disabled_by_user.update(disabled_by_user=True)
 
-        self.addons[296534].update(status=amo.STATUS_NOMINATED)
+        self.addons[607454].update(status=amo.STATUS_NOMINATED)
 
         response = self.client.get(self.url)
         assert response.data
@@ -109,5 +109,7 @@ class TestDiscoveryViewList(TestCase):
         assert response.data['results']
 
         results = response.data['results']
-        assert results[0]['addon']['id'] == discopane_items[0].addon_id
-        assert results[1]['addon']['id'] == discopane_items[1].addon_id
+        assert results[0]['addon']['id'] == discopane_items[3].addon_id
+        assert results[1]['addon']['id'] == discopane_items[4].addon_id
+        assert results[2]['addon']['id'] == discopane_items[5].addon_id
+        assert results[3]['addon']['id'] == discopane_items[6].addon_id

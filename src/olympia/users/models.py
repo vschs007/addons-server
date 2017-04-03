@@ -1,4 +1,5 @@
 import os
+import random
 import re
 import time
 from contextlib import contextmanager
@@ -8,17 +9,17 @@ from django import dispatch, forms
 from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.core import validators
-from django.db import models, transaction
-from django.template import Context, loader
+from django.db import models
 from django.utils import timezone
+from django.utils.crypto import salted_hmac
 from django.utils.translation import ugettext as _, get_language, activate
 from django.utils.encoding import force_text
 from django.utils.functional import lazy
 
 import caching.base as caching
-import commonware.log
 
-from olympia import amo
+import olympia.core.logger
+from olympia import amo, core
 from olympia.amo.models import OnChangeMixin, ManagerBase, ModelBase
 from olympia.access.models import Group, GroupUser
 from olympia.amo.urlresolvers import reverse
@@ -26,7 +27,14 @@ from olympia.translations.fields import NoLinksField, save_signal
 from olympia.translations.models import Translation
 from olympia.translations.query import order_by_translation
 
-log = commonware.log.getLogger('z.users')
+log = olympia.core.logger.getLogger('z.users')
+
+
+def generate_auth_id():
+    """Generate a random integer to be used when generating API auth tokens."""
+    # We use MySQL's maximum value for an unsigned int:
+    # https://dev.mysql.com/doc/refman/5.7/en/integer-types.html
+    return random.SystemRandom().randint(1, 4294967295)
 
 
 class UserForeignKey(models.ForeignKey):
@@ -140,6 +148,12 @@ class UserProfile(OnChangeMixin, ModelBase, AbstractBaseUser):
 
     fxa_id = models.CharField(blank=True, null=True, max_length=128)
 
+    # Identifier that is used to invalidate internal API tokens (i.e. those
+    # that we generate for addons-frontend, NOT the API keys external clients
+    # use) and django sessions. Should be changed if a user is known to have
+    # been compromised.
+    auth_id = models.PositiveIntegerField(null=True, default=generate_auth_id)
+
     class Meta:
         db_table = 'users'
 
@@ -171,6 +185,20 @@ class UserProfile(OnChangeMixin, ModelBase, AbstractBaseUser):
     def is_anonymous(self):
         return False
 
+    def get_session_auth_hash(self):
+        """Return a hash used to invalidate sessions of users when necessary.
+
+        Can return None if auth_id is not set on this user."""
+        if self.auth_id is None:
+            # Old user that has not re-logged since we introduced that field,
+            # return None, it won't be used by django session invalidation
+            # mechanism.
+            return None
+        # Mimic what the AbstractBaseUser implementation does, but with our
+        # own custom field instead of password, which we don't have.
+        key_salt = 'olympia.models.users.UserProfile.get_session_auth_hash'
+        return salted_hmac(key_salt, str(self.auth_id)).hexdigest()
+
     @staticmethod
     def create_user_url(id_, username=None, url_name='profile', src=None,
                         args=None):
@@ -200,21 +228,18 @@ class UserProfile(OnChangeMixin, ModelBase, AbstractBaseUser):
     @amo.cached_property
     def addons_listed(self):
         """Public add-ons this user is listed as author of."""
-        return self.addons.reviewed().filter(
+        return self.addons.public().filter(
             addonuser__user=self, addonuser__listed=True)
 
     @property
     def num_addons_listed(self):
         """Number of public add-ons this user is listed as author of."""
-        return self.addons.reviewed().filter(
+        return self.addons.public().filter(
             addonuser__user=self, addonuser__listed=True).count()
 
-    def my_addons(self, n=8, with_unlisted=False):
+    def my_addons(self, n=8):
         """Returns n addons"""
-        addons = self.addons
-        if with_unlisted:
-            addons = self.addons.model.with_unlisted.filter(authors=self)
-        qs = order_by_translation(addons, 'name')
+        qs = order_by_translation(self.addons, 'name')
         return qs[:n]
 
     @property
@@ -244,9 +269,10 @@ class UserProfile(OnChangeMixin, ModelBase, AbstractBaseUser):
             ])
             return user_media_url('userpics') + path
 
-    @amo.cached_property
+    @amo.cached_property(writable=True)
     def is_developer(self):
-        return self.addonuser_set.exists()
+        return self.addonuser_set.exclude(
+            addon__status=amo.STATUS_DELETED).exists()
 
     @amo.cached_property
     def is_addon_developer(self):
@@ -314,27 +340,6 @@ class UserProfile(OnChangeMixin, ModelBase, AbstractBaseUser):
         self.picture_type = ""
         self.save()
 
-    @transaction.atomic
-    def restrict(self):
-        from olympia.amo.utils import send_mail
-        log.info(u'User (%s: <%s>) is being restricted and '
-                 'its user-generated content removed.' % (self, self.email))
-        g = Group.objects.get(rules='Restricted:UGC')
-        GroupUser.objects.create(user=self, group=g)
-        self.reviews.all().delete()
-        self.collections.all().delete()
-
-        t = loader.get_template('users/email/restricted.ltxt')
-        send_mail(_('Your account has been restricted'),
-                  t.render(Context({})), None, [self.email],
-                  use_deny_list=False)
-
-    def unrestrict(self):
-        log.info(u'User (%s: <%s>) is being unrestricted.' % (self,
-                                                              self.email))
-        GroupUser.objects.filter(user=self,
-                                 group__rules='Restricted:UGC').delete()
-
     def set_unusable_password(self):
         raise NotImplementedError('cannot set unusable password')
 
@@ -347,12 +352,12 @@ class UserProfile(OnChangeMixin, ModelBase, AbstractBaseUser):
     def log_login_attempt(self, successful):
         """Log a user's login attempt"""
         self.last_login_attempt = datetime.now()
-        self.last_login_attempt_ip = commonware.log.get_remote_addr()
+        self.last_login_attempt_ip = core.get_remote_addr()
 
         if successful:
             log.debug(u"User (%s) logged in successfully" % self)
             self.failed_login_attempts = 0
-            self.last_login_ip = commonware.log.get_remote_addr()
+            self.last_login_ip = core.get_remote_addr()
         else:
             log.debug(u"User (%s) failed to log in" % self)
             if self.failed_login_attempts < 16777216:

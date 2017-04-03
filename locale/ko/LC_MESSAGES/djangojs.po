@@ -3,9 +3,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2016-12-01 06:45+0000\n"
-"PO-Revision-Date: 2016-01-26 23:46+0000\n"
-"Last-Translator: ash153311 <ash153311@gmail.com>\n"
+"POT-Creation-Date: 2017-04-03 05:29+0000\n"
+"PO-Revision-Date: 2017-03-09 03:27+0000\n"
+"Last-Translator: Hyeonseok Shin <hyeonseok@gmail.com>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "Language: ko\n"
 "MIME-Version: 1.0\n"
@@ -29,13 +29,12 @@ msgid "Select a file..."
 msgstr "파일을 선택하세요..."
 
 #: static/js/common/upload-addon.js
-#, fuzzy
 msgid "Your add-on should end with .zip, .xpi, .crx, .jar or .xml"
-msgstr "부가 기능의 확장자는 .xpi, .jar, .xml을 사용해야 합니다."
+msgstr "부가 기능의 확장자는 .zip, .xpi, .crx, .jar, 또는 .xml을 사용해야 합니다"
 
 #. L10n: {0} is the percent of the file that has been uploaded.
 #: static/js/common/upload-addon.js
-#, fuzzy, python-format
+#, python-format
 msgid "{0}% complete"
 msgstr "{0}% 완료됨"
 
@@ -58,7 +57,7 @@ msgstr "오류 {0}개"
 
 #: static/js/common/upload-addon.js
 msgid "We have enabled a new linter to process your Add-on. Please make sure to report any issues on GitHub"
-msgstr ""
+msgstr "부가 기능을 처리하기위한 새 린터를 활성화했습니다. 이슈가 발생하면 GitHub에 보고해 주세요."
 
 #: static/js/common/upload-addon.js
 msgid "Your add-on failed validation with {0} error."
@@ -93,33 +92,33 @@ msgstr "{0} 검사 완료"
 
 #: static/js/common/upload-addon.js
 msgid "Your add-on validation timed out, it will be manually reviewed."
-msgstr ""
+msgstr "부가 기능의 유효성 검사가 시간 초과되어서 수동으로 재검토될 것입니다."
 
 #: static/js/common/upload-addon.js
 msgid "Your add-on was validated with no errors and {0} warning."
 msgid_plural "Your add-on was validated with no errors and {0} warnings."
-msgstr[0] ""
+msgstr[0] "부가 기능이 오류 없이 {0}개의 경고로 검증되었습니다."
 
 #: static/js/common/upload-addon.js
 msgid "Your add-on was validated with no errors and {0} message."
 msgid_plural "Your add-on was validated with no errors and {0} messages."
-msgstr[0] ""
+msgstr[0] "부가 기능이 오류 없이 {0}개의 메시지로 검증되었습니다."
 
 #: static/js/common/upload-addon.js
 msgid "Your add-on was validated with no errors or warnings."
-msgstr ""
+msgstr "부가 기능이 오류와 경고 없이 검증되었습니다."
 
 #: static/js/common/upload-addon.js
 msgid "Your submission will be automatically signed."
-msgstr ""
+msgstr "제출은 자동으로 서명됩니다."
 
 #: static/js/common/upload-addon.js
 msgid "WebExtension upgrade"
-msgstr ""
+msgstr "WebExtension 업그레이드"
 
 #: static/js/common/upload-addon.js
 msgid "We allow and encourage an upgrade but you cannot reverse this process. Once your users have the WebExtension installed, they will not be able to install a legacy add-on."
-msgstr ""
+msgstr "업그레이드를 허용하고 장려하지만 이 순서를 거꾸로 할 수는 없습니다. WebExtension을 설치한 사용자는 이전의 부가 기능을 설치할 수 없습니다."
 
 #: static/js/common/upload-addon.js
 msgid "Porting a legacy Firefox add-on on MDN"
@@ -127,7 +126,7 @@ msgstr ""
 
 #: static/js/common/upload-addon.js
 msgid "Include detailed version notes (this can be done in the next step)."
-msgstr ""
+msgstr "자세한 버전 정보를 포함합니다(다음 단계에서 할 수 있습니다)."
 
 #: static/js/common/upload-addon.js
 msgid "If your add-on requires an account to a website in order to be fully tested, include a test username and password in the Notes to Reviewer (this can be done in the next step)."
@@ -135,21 +134,23 @@ msgstr ""
 
 #: static/js/common/upload-addon.js
 msgid "Add-on submission checklist"
-msgstr ""
+msgstr "부가기능 제출 체크리스트"
 
 #: static/js/common/upload-addon.js
 msgid "Please verify the following points before finalizing your submission. This will minimize delays or misunderstanding during the review process:"
-msgstr ""
+msgstr "제출을 마무리 하기 전에 다음 사항을 확인 하십시오. 이 사항들은 지연이나 검토 과정에서의 오해를 최소화할 것입니다:"
 
 #: static/js/common/upload-addon.js
 msgid ""
 "Compiled binaries, as well as minified or obfuscated scripts (excluding known libraries) need to have their sources submitted separately for review. Make sure that you use the source code upload "
 "field to avoid having your submission rejected."
 msgstr ""
+"컴파일된 바이너리파일, 압축되거나 난독화된 스크립트(알려진 라이브러리 제외)는 리뷰를 위해 별도로 제출되어야 합니다. 귀하의 제출이 거절되지 않도록 소스 코드 업로드 필드를 사용하고 있는지 확인하십시"
+"오."
 
 #: static/js/common/upload-addon.js
 msgid "The validation process found these issues that can lead to rejections:"
-msgstr ""
+msgstr "유효성 검사 과정에서 거부 원인이 될 수 있는 문제들 발견:"
 
 #: static/js/common/upload-addon.js
 msgid "Sorry, no supported platform has been found."
@@ -875,7 +876,7 @@ msgstr "다른 버전 보기"
 
 #: static/js/zamboni/buttons.js
 msgid "Only with Firefox — Get Firefox Now!"
-msgstr ""
+msgstr "오직 Firefox에서만 — 지금 Firefox를 받으세요!"
 
 #: static/js/zamboni/buttons.js
 #, fuzzy
@@ -884,7 +885,7 @@ msgstr "다운로드"
 
 #: static/js/zamboni/buttons.js
 msgid "Only available on Firefox Desktop"
-msgstr ""
+msgstr "Firefox 데스크톱에서만 이용 가능함"
 
 #: static/js/zamboni/buttons.js static/js/zamboni/mobile/buttons.js
 msgid "Sorry, you need a Mozilla-based browser (such as Firefox) to install a search plugin."
@@ -1034,27 +1035,15 @@ msgstr ""
 
 #: static/js/zamboni/editors.js
 msgid "Review notes found"
-msgstr ""
+msgstr "심사 메모가 발견됨"
 
 #: static/js/zamboni/editors.js
 msgid "Average Reviews"
-msgstr ""
+msgstr "평균 심사 횟수"
 
 #: static/js/zamboni/editors.js
 msgid "Number of Reviews"
-msgstr ""
-
-#: static/js/zamboni/editors.js
-msgid "Error loading translation"
-msgstr "번역 결과를 불러오는 과정에서 오류 발생"
-
-#: static/js/zamboni/files.js static/js/zamboni/validator.js
-msgid "Ignore this message in future updates"
-msgstr "향후 업데이트에서 이 메시지를 무시"
-
-#: static/js/zamboni/files.js static/js/zamboni/validator.js
-msgid "Severity for automated signing:"
-msgstr ""
+msgstr "심사 횟수"
 
 #: static/js/zamboni/global.js
 msgid "Loading..."
@@ -1140,12 +1129,8 @@ msgid "Warning"
 msgstr "경고"
 
 #: static/js/zamboni/validator.js
-msgid "Suggestions for passing automated signing:"
-msgstr "자동 서명 전달에 대한 제안:"
-
-#: static/js/zamboni/validator.js
 msgid "{0} line {1} column {2}"
-msgstr ""
+msgstr "{0} 줄 {1} 열 {2}"
 
 #: static/js/zamboni/validator.js
 #, fuzzy

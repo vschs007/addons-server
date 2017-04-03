@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2016-12-01 06:45+0000\n"
+"POT-Creation-Date: 2017-04-03 05:29+0000\n"
 "PO-Revision-Date: 2016-11-23 15:22+0000\n"
 "Last-Translator: malditoastur <malditoastur@gmail.com>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1052,18 +1052,6 @@ msgstr "Reseñes promediu"
 msgid "Number of Reviews"
 msgstr "Númberu de revisores"
 
-#: static/js/zamboni/editors.js
-msgid "Error loading translation"
-msgstr "Fallu cargando la traducción"
-
-#: static/js/zamboni/files.js static/js/zamboni/validator.js
-msgid "Ignore this message in future updates"
-msgstr "Inorar esti mensaxe n'anovamientos futuros"
-
-#: static/js/zamboni/files.js static/js/zamboni/validator.js
-msgid "Severity for automated signing:"
-msgstr "Severidá pal robláu automatizáu:"
-
 #: static/js/zamboni/global.js
 msgid "Loading..."
 msgstr "Cargando..."
@@ -1148,10 +1136,6 @@ msgstr "Fallu"
 #: static/js/zamboni/validator.js
 msgid "Warning"
 msgstr "Alvertencia"
-
-#: static/js/zamboni/validator.js
-msgid "Suggestions for passing automated signing:"
-msgstr "Suxerencies pa pasar el robláu automatizáu:"
 
 #: static/js/zamboni/validator.js
 msgid "{0} line {1} column {2}"

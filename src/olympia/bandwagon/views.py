@@ -13,14 +13,13 @@ from django.views.decorators.csrf import csrf_protect
 from django.utils.translation import ugettext_lazy as _lazy, ugettext as _
 
 import caching.base as caching
-import commonware.log
 from django_statsd.clients import statsd
 
+import olympia.core.logger
 from olympia import amo
 from olympia.amo import messages
 from olympia.amo.decorators import (
-    allow_mine, json_view, login_required, post_required, restricted_content,
-    write)
+    allow_mine, json_view, login_required, post_required, write)
 from olympia.amo.urlresolvers import reverse
 from olympia.amo.utils import paginate, urlparams, render
 from olympia.access import acl
@@ -37,7 +36,7 @@ from .models import (
     SPECIAL_SLUGS)
 from . import forms, tasks
 
-log = commonware.log.getLogger('z.collections')
+log = olympia.core.logger.getLogger('z.collections')
 
 
 @non_atomic_requests
@@ -148,7 +147,7 @@ def collection_listing(request, base=None):
     filter = get_filter(request, base)
     # Counts are hard to cache automatically, and accuracy for this
     # one is less important. Remember it for 5 minutes.
-    countkey = hashlib.md5(str(filter.qs.query) + '_count').hexdigest()
+    countkey = hashlib.sha256(str(filter.qs.query) + '_count').hexdigest()
     count = cache.get(countkey)
     if count is None:
         count = filter.qs.count()
@@ -339,7 +338,6 @@ def collection_message(request, collection, option):
 
 @write
 @login_required
-@restricted_content
 def add(request):
     """Displays/processes a form to create a collection."""
     data = {}

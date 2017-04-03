@@ -24,6 +24,9 @@ class Config(caching.base.CachingMixin, models.Model):
     class Meta:
         db_table = u'config'
 
+    def __unicode__(self):
+        return self.key
+
     @property
     def json(self):
         try:
@@ -155,7 +158,7 @@ class ValidationResult(ModelBase):
         messages = results['messages']
         message_ids = [(msg, '.'.join(msg['id'])) for msg in messages]
         message_ids = [
-            hashlib.md5(msg['message']).hexdigest() if msg_id == generated
+            hashlib.sha256(msg['message']).hexdigest() if msg_id == generated
             else msg_id for msg, msg_id in message_ids]
 
         message_summary = {}
@@ -233,7 +236,9 @@ class EmailPreviewTopic(object):
 
     def send_mail(self, subject, body,
                   from_email=settings.DEFAULT_FROM_EMAIL,
-                  recipient_list=tuple([])):
+                  recipient_list=None):
+        if recipient_list is None:
+            recipient_list = tuple([])
         return EmailPreview.objects.create(
             topic=self.topic,
             subject=subject, body=body,

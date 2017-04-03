@@ -6,13 +6,13 @@ from django.conf import settings
 from django.forms import ModelForm
 from django.forms.models import modelformset_factory
 from django.forms.widgets import RadioSelect
+from django.forms.models import BaseModelFormSet
 from django.template import Context, Template, TemplateSyntaxError
 from django.utils.translation import ugettext as _, ugettext_lazy as _lazy
 
-import commonware.log
 from product_details import product_details
-from quieter_formset.formset import BaseModelFormSet
 
+import olympia.core.logger
 from olympia import amo
 from olympia.addons.models import Addon
 from olympia.amo.urlresolvers import reverse
@@ -25,7 +25,7 @@ from olympia.files.models import File
 from olympia.zadmin.models import SiteEvent, ValidationJob
 
 LOGGER_NAME = 'z.zadmin'
-log = commonware.log.getLogger(LOGGER_NAME)
+log = olympia.core.logger.getLogger(LOGGER_NAME)
 
 
 class DevMailerForm(happyforms.Form):

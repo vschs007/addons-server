@@ -260,7 +260,7 @@ class TestInternalAddonViewSetDetail(TestCase):
         assert response.status_code == 403
 
     def test_get_not_listed(self):
-        self.addon.update(is_listed=False)
+        self.make_addon_unlisted(self.addon)
         response = self.client.get(self.url)
         assert response.status_code == 200
 
@@ -299,6 +299,7 @@ def update_domains(overrides):
     overrides = overrides.copy()
     overrides['CORS_ORIGIN_WHITELIST'] = ['addons-frontend', 'localhost:3000']
     return overrides
+
 
 endpoint_overrides = [
     (regex, update_domains(overrides))

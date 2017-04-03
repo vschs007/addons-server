@@ -5,15 +5,14 @@ import os
 from django import forms
 from django.conf import settings
 from django.core.files.storage import default_storage as storage
-from django.forms.formsets import formset_factory
+from django.forms.formsets import BaseFormSet, formset_factory
 from django.utils.translation import (
     ugettext as _, ugettext_lazy as _lazy, ungettext as ngettext)
 
-import commonware.log
-from quieter_formset.formset import BaseFormSet
-
+import olympia.core.logger
 from olympia import amo
 from olympia.access import acl
+from olympia.activity.models import ActivityLog
 from olympia.amo.fields import (
     ColorField, HttpHttpsOnlyURLField, ReCaptchaField)
 from olympia.amo.urlresolvers import reverse
@@ -35,7 +34,7 @@ from olympia.users.models import UserEmailField
 from olympia.versions.models import Version
 
 
-log = commonware.log.getLogger('z.addons')
+log = olympia.core.logger.getLogger('z.addons')
 
 
 def clean_addon_slug(slug, instance):
@@ -383,9 +382,8 @@ class AddonFormTechnical(AddonFormBase):
 
     class Meta:
         model = Addon
-        fields = ('developer_comments', 'view_source', 'site_specific',
-                  'external_software', 'auto_repackage', 'public_stats',
-                  'whiteboard')
+        fields = ('developer_comments', 'view_source', 'external_software',
+                  'auto_repackage', 'public_stats', 'whiteboard')
 
 
 class AddonFormTechnicalUnlisted(AddonFormBase):
@@ -606,7 +604,7 @@ class EditThemeForm(AddonFormBase):
             persona.save()
 
         if self.changed_data:
-            amo.log(amo.LOG.EDIT_PROPERTIES, addon)
+            ActivityLog.create(amo.LOG.EDIT_PROPERTIES, addon)
         self.instance.modified = datetime.now()
 
         # Update Addon-specific data.

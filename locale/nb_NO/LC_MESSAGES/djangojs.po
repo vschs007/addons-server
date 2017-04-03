@@ -3,9 +3,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2016-12-01 06:45+0000\n"
-"PO-Revision-Date: 2016-04-24 11:12+0000\n"
-"Last-Translator: havar <havar@firefox.no>\n"
+"POT-Creation-Date: 2017-04-03 05:29+0000\n"
+"PO-Revision-Date: 2017-01-30 07:03+0000\n"
+"Last-Translator: Håvar Henriksen <havar@firefox.no>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "Language: nb_NO\n"
 "MIME-Version: 1.0\n"
@@ -258,9 +258,8 @@ msgid "Search add-ons for <b>{0}</b>"
 msgstr "Søk i utvidelser etter <b>{0}</b>"
 
 #: static/js/impala/users.js
-#, fuzzy
 msgid "Use original"
-msgstr "bruk original"
+msgstr "Bruk original"
 
 #: static/js/impala/stats/chart.js
 msgid "Week of {0}"
@@ -268,7 +267,7 @@ msgstr "Uke {0}"
 
 #: static/js/impala/stats/chart.js
 msgid " downloads"
-msgstr ""
+msgstr " nedlastinger"
 
 #: static/js/impala/stats/chart.js
 msgid "{0} users"
@@ -1053,18 +1052,6 @@ msgstr ""
 msgid "Number of Reviews"
 msgstr ""
 
-#: static/js/zamboni/editors.js
-msgid "Error loading translation"
-msgstr "Feil ved lasting av oversettelse"
-
-#: static/js/zamboni/files.js static/js/zamboni/validator.js
-msgid "Ignore this message in future updates"
-msgstr ""
-
-#: static/js/zamboni/files.js static/js/zamboni/validator.js
-msgid "Severity for automated signing:"
-msgstr ""
-
 #: static/js/zamboni/global.js
 msgid "Loading..."
 msgstr "Laster ..."
@@ -1149,10 +1136,6 @@ msgstr "Feil"
 #: static/js/zamboni/validator.js
 msgid "Warning"
 msgstr "Advarsel"
-
-#: static/js/zamboni/validator.js
-msgid "Suggestions for passing automated signing:"
-msgstr ""
 
 #: static/js/zamboni/validator.js
 msgid "{0} line {1} column {2}"

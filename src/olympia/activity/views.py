@@ -1,5 +1,4 @@
 import json
-import logging
 
 from django.conf import settings
 from django.shortcuts import get_object_or_404
@@ -14,7 +13,9 @@ from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 from waffle.decorators import waffle_switch
 
+import olympia.core.logger
 from olympia import amo
+from olympia.activity.models import ActivityLog
 from olympia.activity.serializers import ActivityLogSerializer
 from olympia.activity.tasks import process_email
 from olympia.activity.utils import (
@@ -22,7 +23,6 @@ from olympia.activity.utils import (
 from olympia.addons.views import AddonChildMixin
 from olympia.api.permissions import (
     AllowAddonAuthor, AllowReviewer, AllowReviewerUnlisted, AnyOf)
-from olympia.devhub.models import ActivityLog
 from olympia.versions.models import Version
 
 
@@ -62,8 +62,8 @@ class VersionReviewNotesViewSet(AddonChildMixin, ListModelMixin,
     @waffle_switch('activity-email')
     def create(self, request, *args, **kwargs):
         version = self.get_version_object()
-        latest_version = version.addon.find_latest_version_including_rejected(
-            channel=version.channel)
+        latest_version = version.addon.find_latest_version(
+            channel=version.channel, exclude=(amo.STATUS_BETA,))
         if version != latest_version:
             raise ParseError(
                 _('Only latest versions of addons can have notes added.'))
@@ -73,7 +73,8 @@ class VersionReviewNotesViewSet(AddonChildMixin, ListModelMixin,
         serializer = self.get_serializer(activity_object)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-log = logging.getLogger('z.amo.activity')
+
+log = olympia.core.logger.getLogger('z.amo.activity')
 
 
 class EmailCreationPermission(object):

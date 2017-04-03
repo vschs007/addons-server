@@ -3,9 +3,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: REMORA 0.1\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2016-12-01 06:45+0000\n"
-"PO-Revision-Date: 2016-10-25 16:49+0000\n"
-"Last-Translator: Michal Stanke <mstanke@mozilla.cz>\n"
+"POT-Creation-Date: 2017-04-03 05:29+0000\n"
+"PO-Revision-Date: 2016-12-23 22:41+0000\n"
+"Last-Translator: Tomáš Zelina <zelitomas@gmail.com>\n"
 "Language-Team: Mozilla.cz <info@mozilla.cz>\n"
 "Language: cs\n"
 "MIME-Version: 1.0\n"
@@ -480,7 +480,7 @@ msgstr "Kategorie nejlépe hodnocených"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Category Landing Most Popular"
-msgstr "Kategorie nejvíce populárních"
+msgstr "Kategorie nejpopulárnějších"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Category Landing Recently Added"
@@ -1062,18 +1062,6 @@ msgstr "Průměrné hodnocení"
 msgid "Number of Reviews"
 msgstr "Počet hodnocení"
 
-#: static/js/zamboni/editors.js
-msgid "Error loading translation"
-msgstr "Chyba při načítání překladu"
-
-#: static/js/zamboni/files.js static/js/zamboni/validator.js
-msgid "Ignore this message in future updates"
-msgstr "Ignorovat tuto zprávu při budoucích aktualizacích"
-
-#: static/js/zamboni/files.js static/js/zamboni/validator.js
-msgid "Severity for automated signing:"
-msgstr "Závažnost pro automatické podepisování:"
-
 #: static/js/zamboni/global.js
 msgid "Loading..."
 msgstr "Probíhá načítání..."
@@ -1160,10 +1148,6 @@ msgstr "Chyba"
 #: static/js/zamboni/validator.js
 msgid "Warning"
 msgstr "Varování"
-
-#: static/js/zamboni/validator.js
-msgid "Suggestions for passing automated signing:"
-msgstr "Doporučení k úspěšnému dokončení automatického podepsání:"
 
 #: static/js/zamboni/validator.js
 msgid "{0} line {1} column {2}"

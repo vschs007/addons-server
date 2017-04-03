@@ -3,8 +3,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: AMO-JS 0.1\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2016-12-01 06:45+0000\n"
-"PO-Revision-Date: 2016-11-18 00:00+0000\n"
+"POT-Creation-Date: 2017-04-03 05:29+0000\n"
+"PO-Revision-Date: 2017-03-28 21:05+0000\n"
 "Last-Translator: Rodrigo <rodrigo.mcunha@hotmail.com>\n"
 "Language-Team: \n"
 "Language: pt_PT\n"
@@ -27,7 +27,7 @@ msgstr "Ocorreu um problema ao contactar o servidor."
 
 #: static/js/common/upload-addon.js
 msgid "Select a file..."
-msgstr "Selecione um ficheiro..."
+msgstr "Selecionar um ficheiro..."
 
 #: static/js/common/upload-addon.js
 msgid "Your add-on should end with .zip, .xpi, .crx, .jar or .xml"
@@ -58,7 +58,7 @@ msgstr "Erro com {0}"
 
 #: static/js/common/upload-addon.js
 msgid "We have enabled a new linter to process your Add-on. Please make sure to report any issues on GitHub"
-msgstr "Nós ativámos um novo linter para processar o seu Extra. Por favor, reporte quaisquer problemas para o GitHub"
+msgstr "Nós ativámos um novo linter para processar o seu extra. Por favor reporte quaisquer problemas no GitHub"
 
 #: static/js/common/upload-addon.js
 msgid "Your add-on failed validation with {0} error."
@@ -119,11 +119,11 @@ msgstr "A sua submissão será assinada automaticamente."
 
 #: static/js/common/upload-addon.js
 msgid "WebExtension upgrade"
-msgstr "Atualizar"
+msgstr "Atualização WebExtension"
 
 #: static/js/common/upload-addon.js
 msgid "We allow and encourage an upgrade but you cannot reverse this process. Once your users have the WebExtension installed, they will not be able to install a legacy add-on."
-msgstr "Permitimos e encorajamos uma atualização, mas não poderá reverter este processo. Uma vez que os seus utilizadores tenham a WebExtension instalada, não poderão instalar um extra de legado."
+msgstr "Permitimos e encorajamos uma atualização, mas não poderá reverter este processo. Assim que os seus utilizadores tenham a WebExtension instalada, não poderão instalar um extra de legado."
 
 #: static/js/common/upload-addon.js
 msgid "Porting a legacy Firefox add-on on MDN"
@@ -136,7 +136,7 @@ msgstr "Inclua notas detalhadas da versão (isto pode ser feito no próximo pass
 #: static/js/common/upload-addon.js
 msgid "If your add-on requires an account to a website in order to be fully tested, include a test username and password in the Notes to Reviewer (this can be done in the next step)."
 msgstr ""
-"Se para ser completamente testado, o seu extra requer uma conta para um website, inclua um nome de utilizador e palavra-passe de teste nas Notas ao Revisor (isto pode ser feito no próximo passo)."
+"Se o seu extra requer uma conta para um website para ser completamente testado, inclua um nome de utilizador e palavra-passe de teste nas Notas para o revisor (isto pode ser feito no próximo passo)."
 
 #: static/js/common/upload-addon.js
 msgid "Add-on submission checklist"
@@ -229,7 +229,7 @@ msgstr "Nome do seu tema"
 
 #: static/js/impala/reviews.js static/js/zamboni/reviews.js
 msgid "Flagged for review"
-msgstr "Marcada para análise"
+msgstr "Marcada para revisão"
 
 #: static/js/impala/reviews.js static/js/zamboni/reviews.js
 msgid "Your input is required"
@@ -374,23 +374,23 @@ msgstr "Desconhecido"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Add-ons Manager"
-msgstr "Gestor de Extras"
+msgstr "Gestor de extras"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Add-ons Manager Promo"
-msgstr "Gestor de Promoção de Extras"
+msgstr "Promoção no Gestor de extras"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Add-ons Manager Featured"
-msgstr "Gestor de Destaques de Extras"
+msgstr "Em destaque no Gestor de extras"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Add-ons Manager Learn More"
-msgstr "Gestor de Saber Mais sobre Extras"
+msgstr "Saber mais no Gestor de extras"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Search Suggestions"
-msgstr "Sugestões de Pesquisa"
+msgstr "Sugestões de pesquisa"
 
 #: static/js/impala/stats/csv_keys.js
 msgid "Search Results"
@@ -560,7 +560,7 @@ msgstr "Descargas e utilizadores diários, últimos {0} dias"
 #. L10n: both {0} and {1} are dates in YYYY-MM-DD format.
 #: static/js/impala/stats/csv_keys.js
 msgid "Downloads and Daily Users from {0} to {1}"
-msgstr "Descargas e utilizadores diários de {0} a {1}"
+msgstr "Descargas e utilizadores diários desde {0} a {1}"
 
 #. L10n: {0} is an integer.
 #: static/js/impala/stats/csv_keys.js
@@ -570,7 +570,7 @@ msgstr "Instalações e utilizadores diários, últimos {0} dias"
 #. L10n: both {0} and {1} are dates in YYYY-MM-DD format.
 #: static/js/impala/stats/csv_keys.js
 msgid "Installs and Daily Users from {0} to {1}"
-msgstr "Instalações e utilizadores diários de {0} a {1}"
+msgstr "Instalações e utilizadores diários desde {0} a {1}"
 
 #. L10n: {0} is an integer.
 #: static/js/impala/stats/csv_keys.js
@@ -580,7 +580,7 @@ msgstr "Descargas, últimos {0} dias"
 #. L10n: both {0} and {1} are dates in YYYY-MM-DD format.
 #: static/js/impala/stats/csv_keys.js
 msgid "Downloads from {0} to {1}"
-msgstr "Descargas de {0} a {1}"
+msgstr "Descargas desde {0} a {1}"
 
 #. L10n: {0} is an integer.
 #: static/js/impala/stats/csv_keys.js
@@ -590,7 +590,7 @@ msgstr "Utilizadores diários, últimos {0} dias"
 #. L10n: both {0} and {1} are dates in YYYY-MM-DD format.
 #: static/js/impala/stats/csv_keys.js
 msgid "Daily Users from {0} to {1}"
-msgstr "Utilizadores diários de {0} a {1}"
+msgstr "Utilizadores diários desde {0} a {1}"
 
 #. L10n: {0} is an integer.
 #: static/js/impala/stats/csv_keys.js
@@ -600,7 +600,7 @@ msgstr "Aplicações, últimos {0} dias"
 #. L10n: both {0} and {1} are dates in YYYY-MM-DD format.
 #: static/js/impala/stats/csv_keys.js
 msgid "Applications from {0} to {1}"
-msgstr "Aplicações de {0} a {1}"
+msgstr "Aplicações desde {0} a {1}"
 
 #. L10n: {0} is an integer.
 #: static/js/impala/stats/csv_keys.js
@@ -610,7 +610,7 @@ msgstr "Plataformas, últimos {0} dias"
 #. L10n: both {0} and {1} are dates in YYYY-MM-DD format.
 #: static/js/impala/stats/csv_keys.js
 msgid "Platforms from {0} to {1}"
-msgstr "Plataformas de {0} a {1}"
+msgstr "Plataformas desde {0} a {1}"
 
 #. L10n: {0} is an integer.
 #: static/js/impala/stats/csv_keys.js
@@ -620,7 +620,7 @@ msgstr "Idiomas, últimos {0} dias"
 #. L10n: both {0} and {1} are dates in YYYY-MM-DD format.
 #: static/js/impala/stats/csv_keys.js
 msgid "Languages from {0} to {1}"
-msgstr "Idiomas de {0} a {1}"
+msgstr "Idiomas desde {0} a {1}"
 
 #. L10n: {0} is an integer.
 #: static/js/impala/stats/csv_keys.js
@@ -630,7 +630,7 @@ msgstr "Versões do extra, últimos {0} dias"
 #. L10n: both {0} and {1} are dates in YYYY-MM-DD format.
 #: static/js/impala/stats/csv_keys.js
 msgid "Add-on Versions from {0} to {1}"
-msgstr "Versões do extra de {0} a {1}"
+msgstr "Versões do extra desde {0} a {1}"
 
 #. L10n: {0} is an integer.
 #: static/js/impala/stats/csv_keys.js
@@ -640,7 +640,7 @@ msgstr "Estado do extra, últimos {0} dias"
 #. L10n: both {0} and {1} are dates in YYYY-MM-DD format.
 #: static/js/impala/stats/csv_keys.js
 msgid "Add-on Status from {0} to {1}"
-msgstr "Estado do extra de {0} a {1}"
+msgstr "Estado do extra desde {0} a {1}"
 
 #. L10n: {0} is an integer.
 #: static/js/impala/stats/csv_keys.js
@@ -650,7 +650,7 @@ msgstr "Fontes das descargas, últimos {0} dias"
 #. L10n: both {0} and {1} are dates in YYYY-MM-DD format.
 #: static/js/impala/stats/csv_keys.js
 msgid "Download Sources from {0} to {1}"
-msgstr "Fontes das descargas de {0} a {1}"
+msgstr "Fontes das descargas desde {0} a {1}"
 
 #. L10n: {0} is an integer.
 #: static/js/impala/stats/csv_keys.js
@@ -660,17 +660,17 @@ msgstr "Contribuições, últimos {0} dias"
 #. L10n: both {0} and {1} are dates in YYYY-MM-DD format.
 #: static/js/impala/stats/csv_keys.js
 msgid "Contributions from {0} to {1}"
-msgstr "Contribuições de {0} a {1}"
+msgstr "Contribuições desde {0} a {1}"
 
 #. L10n: {0} is an integer.
 #: static/js/impala/stats/csv_keys.js
 msgid "Site Metrics, last {0} days"
-msgstr "Medições do site , últimos {0} dias"
+msgstr "Medições do site, últimos {0} dias"
 
 #. L10n: both {0} and {1} are dates in YYYY-MM-DD format.
 #: static/js/impala/stats/csv_keys.js
 msgid "Site Metrics from {0} to {1}"
-msgstr "Medições do site de {0} a {1}"
+msgstr "Medições do site desde {0} a {1}"
 
 #. L10n: {0} is an integer.
 #: static/js/impala/stats/csv_keys.js
@@ -680,7 +680,7 @@ msgstr "Extras em uso, últimos {0} dias"
 #. L10n: both {0} and {1} are dates in YYYY-MM-DD format.
 #: static/js/impala/stats/csv_keys.js
 msgid "Add-ons in Use from {0} to {1}"
-msgstr "Extras em utilização de {0} a {1}"
+msgstr "Extras em utilização desde {0} a {1}"
 
 #. L10n: {0} is an integer.
 #: static/js/impala/stats/csv_keys.js
@@ -690,17 +690,17 @@ msgstr "Extras descarregados, últimos {0} dias"
 #. L10n: both {0} and {1} are dates in YYYY-MM-DD format.
 #: static/js/impala/stats/csv_keys.js
 msgid "Add-ons Downloaded from {0} to {1}"
-msgstr "Extras descarregados de {0} a {1}"
+msgstr "Extras descarregados desde {0} a {1}"
 
 #. L10n: {0} is an integer.
 #: static/js/impala/stats/csv_keys.js
 msgid "Add-ons Created, last {0} days"
-msgstr "Extras criados, últimos{ 0} dias"
+msgstr "Extras criados, últimos {0} dias"
 
 #. L10n: both {0} and {1} are dates in YYYY-MM-DD format.
 #: static/js/impala/stats/csv_keys.js
 msgid "Add-ons Created from {0} to {1}"
-msgstr "Extras criados de {0} a {1}"
+msgstr "Extras criados desde {0} a {1}"
 
 #. L10n: {0} is an integer.
 #: static/js/impala/stats/csv_keys.js
@@ -710,7 +710,7 @@ msgstr "Extras atualizados, últimos {0} dias"
 #. L10n: both {0} and {1} are dates in YYYY-MM-DD format.
 #: static/js/impala/stats/csv_keys.js
 msgid "Add-ons Updated from {0} to {1}"
-msgstr "Extras atualizados de {0} a {1}"
+msgstr "Extras atualizados desde {0} a {1}"
 
 #. L10n: {0} is an integer.
 #: static/js/impala/stats/csv_keys.js
@@ -720,7 +720,7 @@ msgstr "Revisões escritas, últimos {0} dias"
 #. L10n: both {0} and {1} are dates in YYYY-MM-DD format.
 #: static/js/impala/stats/csv_keys.js
 msgid "Reviews Written from {0} to {1}"
-msgstr "Revisões escritas de {0} a {1}"
+msgstr "Análises escritas desde {0} a {1}"
 
 #. L10n: {0} is an integer.
 #: static/js/impala/stats/csv_keys.js
@@ -730,7 +730,7 @@ msgstr "Subscrição de utilizadores, últimos {0} dias"
 #. L10n: both {0} and {1} are dates in YYYY-MM-DD format.
 #: static/js/impala/stats/csv_keys.js
 msgid "User Signups from {0} to {1}"
-msgstr "Subscrições de utilizadores de {0} a {1}"
+msgstr "Registos de utilizadores desde {0} a {1}"
 
 #. L10n: {0} is an integer.
 #: static/js/impala/stats/csv_keys.js
@@ -740,7 +740,7 @@ msgstr "Coleções criadas, últimos {0} dias"
 #. L10n: both {0} and {1} are dates in YYYY-MM-DD format.
 #: static/js/impala/stats/csv_keys.js
 msgid "Collections Created from {0} to {1}"
-msgstr "Coleções criadas de {0} a {1}"
+msgstr "Coleções criadas desde {0} a {1}"
 
 #. L10n: {0} is an integer.
 #: static/js/impala/stats/csv_keys.js
@@ -750,7 +750,7 @@ msgstr "Subscritores, últimos {0} dias"
 #. L10n: both {0} and {1} are dates in YYYY-MM-DD format.
 #: static/js/impala/stats/csv_keys.js
 msgid "Subscribers from {0} to {1}"
-msgstr "Subscritores de {0} a {1}"
+msgstr "Subscritores desde {0} a {1}"
 
 #. L10n: {0} is an integer.
 #: static/js/impala/stats/csv_keys.js
@@ -760,7 +760,7 @@ msgstr "Avaliações, últimos {0} dias"
 #. L10n: both {0} and {1} are dates in YYYY-MM-DD format.
 #: static/js/impala/stats/csv_keys.js
 msgid "Ratings from {0} to {1}"
-msgstr "Avaliações de {0} a {1}"
+msgstr "Avaliações desde {0} a {1}"
 
 #. L10n: {0} is an integer.
 #: static/js/impala/stats/csv_keys.js
@@ -770,7 +770,7 @@ msgstr "Vendas, últimos {0} dias"
 #. L10n: both {0} and {1} are dates in YYYY-MM-DD format.
 #: static/js/impala/stats/csv_keys.js
 msgid "Sales from {0} to {1}"
-msgstr "Vendas de {0} a {1}"
+msgstr "Vendas desde {0} a {1}"
 
 #. L10n: {0} is an integer.
 #: static/js/impala/stats/csv_keys.js
@@ -780,7 +780,7 @@ msgstr "Instalações, últimos {0} dias"
 #. L10n: both {0} and {1} are dates in YYYY-MM-DD format.
 #: static/js/impala/stats/csv_keys.js
 msgid "Installs from {0} to {1}"
-msgstr "Instalações de {0} a {1}"
+msgstr "Instalações desde {0} a {1}"
 
 #. L10n: {0} and {1} are integers.
 #: static/js/impala/stats/csv_keys.js
@@ -857,7 +857,7 @@ msgstr "Mesmo assim, instalar para o {0}"
 
 #: static/js/zamboni/buttons.js
 msgid "Download for {0} anyway"
-msgstr "Mesmo assim, descarregar para o {0}"
+msgstr "Mesmo assim, descarregar para {0}"
 
 #: static/js/zamboni/buttons.js
 msgid "Not available for your platform"
@@ -1052,18 +1052,6 @@ msgstr "Pontuação média"
 msgid "Number of Reviews"
 msgstr "Número de análises"
 
-#: static/js/zamboni/editors.js
-msgid "Error loading translation"
-msgstr "Erro ao carregar a tradução"
-
-#: static/js/zamboni/files.js static/js/zamboni/validator.js
-msgid "Ignore this message in future updates"
-msgstr "Ignorar esta mensagem em futuras atualizações"
-
-#: static/js/zamboni/files.js static/js/zamboni/validator.js
-msgid "Severity for automated signing:"
-msgstr "Severidade para sinalização automática:"
-
 #: static/js/zamboni/global.js
 msgid "Loading..."
 msgstr "A carregar..."
@@ -1072,7 +1060,7 @@ msgstr "A carregar..."
 #: static/js/zamboni/global.js
 msgid "<b>{0}</b> character left."
 msgid_plural "<b>{0}</b> characters left."
-msgstr[0] "Falta <b>{0}</b> caráter."
+msgstr[0] "Falta <b>{0}</b> caractere."
 msgstr[1] "Faltam <b>{0}</b> caracteres."
 
 #: static/js/zamboni/init.js
@@ -1090,7 +1078,7 @@ msgstr "Força da palavra-passe:"
 #: static/js/zamboni/password-strength.js
 msgid "At least {0} character left."
 msgid_plural "At least {0} characters left."
-msgstr[0] "Falta pelo menos {0} caráter."
+msgstr[0] "Falta pelo menos {0} caractere."
 msgstr[1] "Faltam pelo menos {0} caracteres."
 
 #: static/js/zamboni/themes_review.js
@@ -1148,10 +1136,6 @@ msgstr "Erro"
 #: static/js/zamboni/validator.js
 msgid "Warning"
 msgstr "Aviso"
-
-#: static/js/zamboni/validator.js
-msgid "Suggestions for passing automated signing:"
-msgstr "Sugestões para passar a assinatura automática:"
 
 #: static/js/zamboni/validator.js
 msgid "{0} line {1} column {2}"

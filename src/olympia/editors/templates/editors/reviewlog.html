@@ -1,13 +1,9 @@
 {% extends "editors/base.html" %}
 
-{% block breadcrumbs %}
-{{ editors_breadcrumbs(items=[(None, _('Add-on Review Log'))]) }}
-{% endblock %}
-
 {% block content %}
 
   <div id="log-filter" class="log-filter-outside">
-    <form action="{{ url('editors.reviewlog') }}" method="get">
+    <form action="{{ url('editors.reviewlog') }}" method="get" data-no-csrf>
       <div class="date_range">
         {{ form.start.label_tag() }}
         {{ form.start }}
@@ -33,7 +29,7 @@
           <tr class="listing-header">
             <th>{{ _('Date') }}</th>
             <th>{{ _('Event') }}</th>
-            <th>{{ _('Editor') }}</th>
+            <th>{{ _('Reviewer') }}</th>
             <th>&nbsp;</th>
           </tr>
         </thead>

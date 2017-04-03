@@ -7,9 +7,10 @@ from django.utils.feedgenerator import Rss201rev2Feed as RSS
 from django.utils.translation import ugettext as _
 
 from olympia import amo
+from olympia.activity.models import ActivityLog
 from olympia.addons.models import Addon
 from olympia.amo.helpers import absolutify, url, strip_html
-from olympia.devhub.models import ActivityLog, RssKey
+from olympia.devhub.models import RssKey
 
 
 class ActivityFeedRSS(Feed):
@@ -29,7 +30,7 @@ class ActivityFeedRSS(Feed):
         if key.addon:
             addons = key.addon
         else:  # We are showing all the add-ons
-            addons = Addon.with_unlisted.filter(authors=key.user)
+            addons = Addon.objects.filter(authors=key.user)
 
         return (ActivityLog.objects.for_addons(addons)
                            .exclude(action__in=amo.LOG_HIDE_DEVELOPER))[:20]

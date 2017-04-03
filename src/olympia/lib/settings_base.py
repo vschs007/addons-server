@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-# Django settings for olympia project.
+# Django settings for addons-server project.
 
-import datetime
 import logging
 import os
 import socket
@@ -10,6 +9,8 @@ from django.utils.functional import lazy
 from django.core.urlresolvers import reverse_lazy
 
 import environ
+from kombu import Queue
+
 
 env = environ.Env()
 
@@ -18,6 +19,7 @@ ALLOWED_HOSTS = [
     '.mozilla.org',
     '.mozilla.com',
     '.mozilla.net',
+    '.mozaws.net',
 ]
 
 # jingo-minify settings
@@ -107,6 +109,7 @@ def cors_endpoint_overrides(internal, public):
         }),
     ]
 
+
 CORS_ENDPOINT_OVERRIDES = cors_endpoint_overrides(
     public=['localhost:3000', 'olympia.dev'],
     internal=['localhost:3000'],
@@ -156,8 +159,8 @@ LANGUAGE_CODE = 'en-US'
 AMO_LANGUAGES = (
     'af', 'ar', 'bg', 'bn-BD', 'ca', 'cs', 'da', 'de', 'dsb',
     'el', 'en-GB', 'en-US', 'es', 'eu', 'fa', 'fi', 'fr', 'ga-IE', 'he', 'hu',
-    'hsb', 'id', 'it', 'ja', 'ka', 'ko', 'nn-NO', 'mk', 'mn', 'nl', 'pl',
-    'pt-BR', 'pt-PT', 'ro', 'ru', 'sk', 'sl', 'sq', 'sv-SE', 'uk', 'vi',
+    'hsb', 'id', 'it', 'ja', 'ka', 'kab', 'ko', 'nn-NO', 'mk', 'mn', 'nl',
+    'pl', 'pt-BR', 'pt-PT', 'ro', 'ru', 'sk', 'sl', 'sq', 'sv-SE', 'uk', 'vi',
     'zh-CN', 'zh-TW',
 )
 
@@ -177,6 +180,7 @@ def lazy_langs(languages):
         return {}
     return dict([(i.lower(), product_details.languages[i]['native'])
                  for i in languages])
+
 
 # Where product details are stored see django-mozilla-product-details
 PROD_DETAILS_DIR = path('src', 'olympia', 'lib', 'product_json')
@@ -253,12 +257,14 @@ DUMPED_USERS_DAYS_DELETE = 3600 * 24 * 30
 # path that isn't just one /, and doesn't require any locale or app.
 SUPPORTED_NONAPPS_NONLOCALES_PREFIX = (
     'api/v3',
-    'blocked/blocklists.json',
 )
 
 # paths that don't require an app prefix
+# This needs to be kept in sync with addons-frontend's
+# validClientAppUrlExceptions
+# https://github.com/mozilla/addons-frontend/blob/master/config/default-amo.js
 SUPPORTED_NONAPPS = (
-    'about', 'admin', 'apps', 'blocklist', 'contribute.json', 'credits',
+    'about', 'admin', 'apps', 'contribute.json', 'credits',
     'developer_agreement', 'developer_faq', 'developers', 'editors', 'faq',
     'jsi18n', 'review_guide', 'google1f3e37b7351799a5.html',
     'robots.txt', 'statistics', 'services', 'sunbird', 'static', 'user-media',
@@ -267,9 +273,11 @@ SUPPORTED_NONAPPS = (
 DEFAULT_APP = 'firefox'
 
 # paths that don't require a locale prefix
+# This needs to be kept in sync with addons-frontend's validLocaleUrlExceptions
+# https://github.com/mozilla/addons-frontend/blob/master/config/default-amo.js
 SUPPORTED_NONLOCALES = (
     'contribute.json', 'google1f3e37b7351799a5.html', 'robots.txt', 'services',
-    'downloads', 'blocklist', 'static', 'user-media', '__version__',
+    'downloads', 'static', 'user-media', '__version__',
 )
 
 # Make this unique, and don't share it with anybody.
@@ -363,6 +371,7 @@ def JINJA_CONFIG():
         config['bytecode_cache'] = bc
     return config
 
+
 X_FRAME_OPTIONS = 'DENY'
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
@@ -379,7 +388,7 @@ MIDDLEWARE_CLASSES = (
     'olympia.amo.middleware.RemoveSlashMiddleware',
 
     # Munging REMOTE_ADDR must come before ThreadRequest.
-    'commonware.middleware.SetRemoteAddrFromForwardedFor',
+    'olympia.amo.middleware.SetRemoteAddrFromForwardedFor',
 
     'django.middleware.security.SecurityMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -396,14 +405,14 @@ MIDDLEWARE_CLASSES = (
     'olympia.amo.middleware.NoVarySessionMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'olympia.amo.middleware.AuthenticationMiddlewareWithoutAPI',
-    'commonware.log.ThreadRequestMiddleware',
     'olympia.search.middleware.ElasticsearchExceptionMiddleware',
     'session_csrf.CsrfMiddleware',
 
-    # This should come after authentication middleware
-    'olympia.access.middleware.ACLMiddleware',
+    # This should come after AuthenticationMiddlewareWithoutAPI and after
+    # SetRemoteAddrFromForwardedFor.
+    'olympia.access.middleware.UserAndAddrMiddleware',
 
-    'commonware.middleware.ScrubRequestOnException',
+    'olympia.amo.middleware.ScrubRequestOnException',
 )
 
 # Auth
@@ -423,13 +432,13 @@ INSTALLED_APPS = (
     'olympia.api',
     'olympia.applications',
     'olympia.bandwagon',
-    'olympia.blocklist',
     'olympia.browse',
     'olympia.compat',
     'olympia.devhub',
     'olympia.discovery',
     'olympia.editors',
     'olympia.files',
+    'olympia.github',
     'olympia.internal_tools',
     'olympia.legacy_api',
     'olympia.legacy_discovery',
@@ -446,7 +455,6 @@ INSTALLED_APPS = (
 
     # Third party apps
     'product_details',
-    'cronjobs',
     'csp',
     'aesfield',
     'django_extensions',
@@ -521,8 +529,13 @@ MINIFY_BUNDLES = {
 
         # CSS files our DevHub (currently only required for the
         # new landing page)
-        'devhub/css': (
-            'css/devhub/base.less',
+        'devhub/new-landing/css': (
+            'css/devhub/new-landing/base.less',
+        ),
+
+        # Responsive error page styling.
+        'errors/css': (
+            'css/errors/base.less',
         ),
 
         # CSS files common to the entire site.
@@ -733,6 +746,7 @@ MINIFY_BUNDLES = {
         ),
         # Impala: Things to be loaded at the bottom
         'impala': (
+            'js/lib/ngettext-overload.js',
             'js/lib/raven.min.js',
             'js/common/raven-config.js',
             'js/lib/underscore.js',
@@ -946,9 +960,6 @@ PYLIBMC_MIN_COMPRESS_LEN = 0  # disabled
 # External tools.
 JAVA_BIN = '/usr/bin/java'
 
-# Add-on download settings.
-PRIVATE_MIRROR_URL = '/_privatefiles'
-
 # File paths
 ADDON_ICONS_DEFAULT_PATH = os.path.join(ROOT, 'static', 'img', 'addon-icons')
 CA_CERT_BUNDLE_PATH = os.path.join(
@@ -1046,6 +1057,27 @@ CELERY_IMPORTS = (
     'olympia.lib.es.management.commands.reindex',
 )
 
+CELERY_QUEUES = (
+    Queue('default', routing_key='default'),
+    Queue('priority', routing_key='priority'),
+    Queue('devhub', routing_key='devhub'),
+    Queue('images', routing_key='images'),
+    Queue('limited', routing_key='limited'),
+    Queue('amo', routing_key='amo'),
+    Queue('addons', routing_key='addons'),
+    Queue('api', routing_key='api'),
+    Queue('cron', routing_key='cron'),
+    Queue('bandwagon', routing_key='bandwagon'),
+    Queue('editors', routing_key='editors'),
+    Queue('crypto', routing_key='crypto'),
+    Queue('search', routing_key='search'),
+    Queue('reviews', routing_key='reviews'),
+    Queue('stats', routing_key='stats'),
+    Queue('tags', routing_key='tags'),
+    Queue('users', routing_key='users'),
+    Queue('zadmin', routing_key='zadmin'),
+)
+
 # We have separate celeryds for processing devhub & images as fast as possible
 # Some notes:
 # - always add routes here instead of @task(queue=<name>)
@@ -1071,12 +1103,13 @@ CELERY_ROUTES = {
     'olympia.devhub.tasks.handle_file_validation_result': {'queue': 'devhub'},
     'olympia.devhub.tasks.handle_upload_validation_result': {
         'queue': 'devhub'},
-    'olympia.devhub.tasks.resize_icon': {'queue': 'devhub'},
-    'olympia.devhub.tasks.resize_preview': {'queue': 'devhub'},
     'olympia.devhub.tasks.send_welcome_email': {'queue': 'devhub'},
     'olympia.devhub.tasks.submit_file': {'queue': 'devhub'},
     'olympia.devhub.tasks.validate_file': {'queue': 'devhub'},
     'olympia.devhub.tasks.validate_file_path': {'queue': 'devhub'},
+
+    # Activity (goes to devhub queue).
+    'olympia.activity.tasks.process_email': {'queue': 'devhub'},
 
     # This is currently used only by validation tasks.
     # This puts the chord_unlock task on the devhub queue. Which means anything
@@ -1088,7 +1121,6 @@ CELERY_ROUTES = {
     # Images.
     'olympia.bandwagon.tasks.resize_icon': {'queue': 'images'},
     'olympia.users.tasks.resize_photo': {'queue': 'images'},
-    'olympia.users.tasks.delete_photo': {'queue': 'images'},
     'olympia.devhub.tasks.resize_icon': {'queue': 'images'},
     'olympia.devhub.tasks.resize_preview': {'queue': 'images'},
 
@@ -1130,7 +1162,6 @@ CELERY_ROUTES = {
     'olympia.bandwagon.tasks.collection_votes': {'queue': 'bandwagon'},
     'olympia.bandwagon.tasks.collection_watchers': {'queue': 'bandwagon'},
     'olympia.bandwagon.tasks.delete_icon': {'queue': 'bandwagon'},
-    'olympia.bandwagon.tasks.resize_icon': {'queue': 'bandwagon'},
 
     # Editors
     'olympia.editors.tasks.add_commentlog': {'queue': 'editors'},
@@ -1138,9 +1169,6 @@ CELERY_ROUTES = {
     'olympia.editors.tasks.approve_rereview': {'queue': 'editors'},
     'olympia.editors.tasks.reject_rereview': {'queue': 'editors'},
     'olympia.editors.tasks.send_mail': {'queue': 'editors'},
-
-    # Files
-    'olympia.files.tasks.extract_file': {'queue': 'files'},
 
     # Crypto
     'olympia.lib.crypto.tasks.sign_addons': {'queue': 'crypto'},
@@ -1160,7 +1188,6 @@ CELERY_ROUTES = {
         'queue': 'search'},
 
     # Reviews
-    'olympia.reviews.models.check_spam': {'queue': 'reviews'},
     'olympia.reviews.tasks.addon_bayesian_rating': {'queue': 'reviews'},
     'olympia.reviews.tasks.addon_grouped_rating': {'queue': 'reviews'},
     'olympia.reviews.tasks.addon_review_aggregates': {'queue': 'reviews'},
@@ -1168,7 +1195,6 @@ CELERY_ROUTES = {
 
 
     # Stats
-    'olympia.stats.tasks.addon_total_contributions': {'queue': 'stats'},
     'olympia.stats.tasks.index_collection_counts': {'queue': 'stats'},
     'olympia.stats.tasks.index_download_counts': {'queue': 'stats'},
     'olympia.stats.tasks.index_theme_user_counts': {'queue': 'stats'},
@@ -1185,8 +1211,8 @@ CELERY_ROUTES = {
 
     # Users
     'olympia.users.tasks.delete_photo': {'queue': 'users'},
-    'olympia.users.tasks.resize_photo': {'queue': 'users'},
     'olympia.users.tasks.update_user_ratings_task': {'queue': 'users'},
+    'olympia.users.tasks.generate_secret_for_users': {'queue': 'users'},
 
     # Zadmin
     'olympia.zadmin.tasks.add_validation_jobs': {'queue': 'zadmin'},
@@ -1197,6 +1223,10 @@ CELERY_ROUTES = {
     'olympia.zadmin.tasks.notify_compatibility': {'queue': 'zadmin'},
     'olympia.zadmin.tasks.notify_compatibility_chunk': {'queue': 'zadmin'},
     'olympia.zadmin.tasks.update_maxversions': {'queue': 'zadmin'},
+
+    # Github API
+    'olympia.github.tasks.process_results': {'queue': 'devhub'},
+    'olympia.github.tasks.process_webhook': {'queue': 'devhub'},
 }
 
 
@@ -1239,6 +1269,7 @@ LOGGING = {
         'rdflib': {'handlers': ['null']},
         'z.task': {'level': logging.INFO},
         'z.es': {'level': logging.INFO},
+        'z.editors.auto_approve': {'handlers': ['syslog', 'console']},
         's.client': {'level': logging.INFO},
     },
 }
@@ -1286,7 +1317,8 @@ CSP_IMG_SRC = (
     "'self'",
     'data:',  # Used in inlined mobile css.
     'blob:',  # Needed for image uploads.
-    'https://www.paypal.com',
+    'https://www.paypal.com/webapps/checkout/',  # Needed for contrib.
+    'https://www.paypal.com/webapps/hermes/api/logger',  # Needed for contrib.
     ANALYTICS_HOST,
     PROD_CDN_HOST,
     'https://static.addons.mozilla.net',  # CDN origin server.
@@ -1386,6 +1418,7 @@ def get_redis_settings(uri):
         'OPTIONS': options
     }
 
+
 # This is used for `django-cache-machine`
 REDIS_BACKEND = REDIS_LOCATION
 
@@ -1413,8 +1446,6 @@ DEFAULT_SUGGESTED_CONTRIBUTION = 5
 
 # Path to `ps`.
 PS_BIN = '/bin/ps'
-
-BLOCKLIST_COOKIE = 'BLOCKLIST_v1'
 
 # The maximum file size that is shown inside the file viewer.
 FILE_VIEWER_SIZE_LIMIT = 1048576
@@ -1520,14 +1551,6 @@ GOOGLE_ANALYTICS_CREDENTIALS = {}
 # Which domain to access GA stats for. If not set, defaults to DOMAIN.
 GOOGLE_ANALYTICS_DOMAIN = None
 
-# Used for general web API access.
-GOOGLE_API_CREDENTIALS = ''
-
-# Google translate settings.
-GOOGLE_TRANSLATE_API_URL = 'https://www.googleapis.com/language/translate/v2'
-GOOGLE_TRANSLATE_REDIRECT_URL = (
-    'https://translate.google.com/#auto/{lang}/{text}')
-
 # Language pack fetcher settings
 LANGPACK_OWNER_EMAIL = 'addons-team@mozilla.com'
 LANGPACK_DOWNLOAD_BASE = 'https://ftp.mozilla.org/pub/mozilla.org/'
@@ -1599,17 +1622,8 @@ JWT_AUTH = {
     # clocks are off.
     'JWT_LEEWAY': 5,
 
-    # Expiration for non-apikey jwt tokens. Since this will be used by our
-    # frontend clients we want a longer expiration than normal, matching the
-    # session cookie expiration.
-    'JWT_EXPIRATION_DELTA': datetime.timedelta(seconds=SESSION_COOKIE_AGE),
-
-    # We don't allow refreshes, instead we simply have a long duration.
+    # We don't allow refreshes.
     'JWT_ALLOW_REFRESH': False,
-
-    # Prefix for non-apikey jwt tokens. Should be different from 'JWT' which we
-    # already used for api key tokens.
-    'JWT_AUTH_HEADER_PREFIX': 'Bearer',
 }
 
 REST_FRAMEWORK = {
@@ -1620,7 +1634,7 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer',
     ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'olympia.api.authentication.JSONWebTokenAuthentication',
+        'olympia.api.authentication.WebTokenAuthentication',
     ),
     # Set parser classes to include the fix for
     # https://github.com/tomchristie/django-rest-framework/issues/3951
@@ -1661,3 +1675,50 @@ SHELL_PLUS_POST_IMPORTS = (
 DEFAULT_FXA_CONFIG_NAME = 'default'
 INTERNAL_FXA_CONFIG_NAME = 'internal'
 ALLOWED_FXA_CONFIGS = ['default']
+
+WEBEXT_PERM_DESCRIPTIONS_URL = (
+    'https://hg.mozilla.org/mozilla-central/raw-file/tip/'
+    'browser/locales/en-US/chrome/browser/browser.properties')
+WEBEXT_PERM_DESCRIPTIONS_LOCALISED_URL = (
+    'https://hg.mozilla.org/l10n-central/{locale}/raw-file/tip/'
+    'browser/chrome/browser/browser.properties')
+
+# List all jobs that should be callable with cron here.
+# syntax is: job_and_method_name: full.package.path
+CRON_JOBS = {
+    'update_addon_average_daily_users': 'olympia.addons.cron',
+    'update_addon_download_totals': 'olympia.addons.cron',
+    'addon_last_updated': 'olympia.addons.cron',
+    'update_addon_appsupport': 'olympia.addons.cron',
+    'update_all_appsupport': 'olympia.addons.cron',
+    'hide_disabled_files': 'olympia.addons.cron',
+    'unhide_disabled_files': 'olympia.addons.cron',
+    'deliver_hotness': 'olympia.addons.cron',
+    'reindex_addons': 'olympia.addons.cron',
+    'cleanup_image_files': 'olympia.addons.cron',
+
+    'gc': 'olympia.amo.cron',
+    'category_totals': 'olympia.amo.cron',
+    'collection_subscribers': 'olympia.amo.cron',
+    'weekly_downloads': 'olympia.amo.cron',
+
+    'update_collections_subscribers': 'olympia.bandwagon.cron',
+    'update_collections_votes': 'olympia.bandwagon.cron',
+    'reindex_collections': 'olympia.bandwagon.cron',
+
+    'compatibility_report': 'olympia.compat.cron',
+
+    'update_blog_posts': 'olympia.devhub.cron',
+
+    'cleanup_extracted_file': 'olympia.files.cron',
+    'cleanup_validation_results': 'olympia.files.cron',
+
+    'update_addons_collections_downloads': 'olympia.stats.cron',
+    'update_collections_total': 'olympia.stats.cron',
+    'update_global_totals': 'olympia.stats.cron',
+    'update_google_analytics': 'olympia.stats.cron',
+    'index_latest_stats': 'olympia.stats.cron',
+
+    'update_user_ratings': 'olympia.users.cron',
+    'reindex_users': 'olympia.users.cron',
+}

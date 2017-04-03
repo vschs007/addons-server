@@ -6,20 +6,20 @@ from django.core.files import temp
 
 import mock
 from pyquery import PyQuery as pq
-from waffle.testutils import override_switch
 
 from olympia import amo
+from olympia.activity.models import ActivityLog
 from olympia.addons.models import Addon, AddonCategory, Category
 from olympia.amo.tests import (
     addon_factory, formset, initial, TestCase, version_factory)
 from olympia.amo.tests.test_helpers import get_image_path
 from olympia.amo.urlresolvers import reverse
 from olympia.devhub import views
-from olympia.devhub.models import ActivityLog
 from olympia.files.models import FileValidation
 from olympia.files.tests.test_models import UploadTest
 from olympia.users.models import UserProfile
 from olympia.versions.models import License
+from olympia.zadmin.models import Config
 
 
 def get_addon_count(name):
@@ -42,9 +42,9 @@ class TestSubmitPersona(TestCase):
         )
 
     def test_img_urls(self):
-        r = self.client.get(self.url)
-        assert r.status_code == 200
-        doc = pq(r.content)
+        response = self.client.get(self.url)
+        assert response.status_code == 200
+        doc = pq(response.content)
         header_url, footer_url = self.get_img_urls()
         assert doc('#id_header').attr('data-upload-url') == header_url
         assert doc('#id_footer').attr('data-upload-url') == footer_url
@@ -77,7 +77,7 @@ class TestSubmitBase(TestCase):
         self.addon = self.get_addon()
 
     def get_addon(self):
-        return Addon.with_unlisted.no_cache().get(pk=3615)
+        return Addon.objects.no_cache().get(pk=3615)
 
     def get_version(self):
         return self.get_addon().versions.latest()
@@ -89,8 +89,6 @@ class TestAddonSubmitAgreement(TestSubmitBase):
         response = self.client.get(reverse('devhub.submit.agreement'))
         assert response.status_code == 200
         doc = pq(response.content)
-        assert doc('#breadcrumbs a').eq(1).attr('href') == (
-            reverse('devhub.addons'))
         links = doc('#agreement-container a')
         assert links
         for ln in links:
@@ -123,17 +121,29 @@ class TestAddonSubmitDistribution(TestCase):
         self.user = UserProfile.objects.get(email='regular@mozilla.com')
 
     def test_check_agreement_okay(self):
-        r = self.client.post(reverse('devhub.submit.agreement'))
-        self.assert3xx(r, reverse('devhub.submit.distribution'))
-        r = self.client.get(reverse('devhub.submit.distribution'))
-        assert r.status_code == 200
+        response = self.client.post(reverse('devhub.submit.agreement'))
+        self.assert3xx(response, reverse('devhub.submit.distribution'))
+        response = self.client.get(reverse('devhub.submit.distribution'))
+        assert response.status_code == 200
+        # No error shown for a redirect from previous step.
+        assert 'This field is required' not in response.content
+
+    def test_submit_notification_warning(self):
+        config = Config.objects.create(
+            key='submit_notification_warning',
+            value='Text with <a href="http://example.com">a link</a>.')
+        response = self.client.get(reverse('devhub.submit.distribution'))
+        assert response.status_code == 200
+        doc = pq(response.content)
+        assert doc('.notification-box.warning').html().strip() == config.value
 
     def test_redirect_back_to_agreement(self):
         # We require a cookie that gets set in step 1.
         self.user.update(read_dev_agreement=None)
 
-        r = self.client.get(reverse('devhub.submit.distribution'), follow=True)
-        self.assert3xx(r, reverse('devhub.submit.agreement'))
+        response = self.client.get(
+            reverse('devhub.submit.distribution'), follow=True)
+        self.assert3xx(response, reverse('devhub.submit.agreement'))
 
     def test_listed_redirects_to_next_step(self):
         response = self.client.post(reverse('devhub.submit.distribution'),
@@ -146,6 +156,18 @@ class TestAddonSubmitDistribution(TestCase):
                                     {'channel': 'unlisted'})
         self.assert3xx(response, reverse('devhub.submit.upload',
                                          args=['unlisted']))
+
+    def test_channel_selection_error_shown(self):
+        url = reverse('devhub.submit.distribution')
+        # First load should have no error
+        assert 'This field is required' not in self.client.get(url).content
+
+        # Load with channel preselected (e.g. back from next step) - no error.
+        assert 'This field is required' not in self.client.get(
+            url, args=['listed']).content
+
+        # A post submission without channel selection should be an error
+        assert 'This field is required' in self.client.post(url).content
 
 
 class TestAddonSubmitUpload(UploadTest, TestCase):
@@ -161,17 +183,21 @@ class TestAddonSubmitUpload(UploadTest, TestCase):
              source=None, listed=True, status_code=200):
         if supported_platforms is None:
             supported_platforms = [amo.PLATFORM_ALL]
-        d = dict(upload=self.upload.uuid.hex, source=source,
-                 supported_platforms=[p.id for p in supported_platforms])
+        data = {
+            'upload': self.upload.uuid.hex,
+            'source': source,
+            'supported_platforms': [p.id for p in supported_platforms]
+        }
         url = reverse('devhub.submit.upload',
                       args=['listed' if listed else 'unlisted'])
-        r = self.client.post(url, d, follow=True)
-        assert r.status_code == status_code
+        response = self.client.post(url, data, follow=True)
+        assert response.status_code == status_code
         if not expect_errors:
             # Show any unexpected form errors.
-            if r.context and 'new_addon_form' in r.context:
-                assert r.context['new_addon_form'].errors.as_text() == ''
-        return r
+            if response.context and 'new_addon_form' in response.context:
+                assert (
+                    response.context['new_addon_form'].errors.as_text() == '')
+        return response
 
     def test_unique_name(self):
         addon_factory(name='xpi name')
@@ -179,7 +205,8 @@ class TestAddonSubmitUpload(UploadTest, TestCase):
 
     def test_unlisted_name_not_unique(self):
         """We don't enforce name uniqueness for unlisted add-ons."""
-        addon_factory(name='xpi name', is_listed=False)
+        addon_factory(name='xpi name',
+                      version_kw={'channel': amo.RELEASE_CHANNEL_LISTED})
         assert get_addon_count('xpi name') == 1
         # We're not passing `expected_errors=True`, so if there was any errors
         # like "This name is already in use. Please choose another one", the
@@ -207,13 +234,13 @@ class TestAddonSubmitUpload(UploadTest, TestCase):
 
     def test_success_listed(self):
         assert Addon.objects.count() == 0
-        r = self.post()
+        response = self.post()
         addon = Addon.objects.get()
-        assert addon.is_listed
         version = addon.find_latest_version(channel=amo.RELEASE_CHANNEL_LISTED)
         assert version
         assert version.channel == amo.RELEASE_CHANNEL_LISTED
-        self.assert3xx(r, reverse('devhub.submit.details', args=[addon.slug]))
+        self.assert3xx(
+            response, reverse('devhub.submit.details', args=[addon.slug]))
         log_items = ActivityLog.objects.for_addons(addon)
         assert log_items.filter(action=amo.LOG.CREATE_ADDON.id), (
             'New add-on creation never logged.')
@@ -221,42 +248,19 @@ class TestAddonSubmitUpload(UploadTest, TestCase):
     @mock.patch('olympia.editors.helpers.sign_file')
     def test_success_unlisted(self, mock_sign_file):
         """Sign automatically."""
-        assert Addon.with_unlisted.count() == 0
+        assert Addon.objects.count() == 0
         # No validation errors or warning.
+        result = {
+            'errors': 0,
+            'warnings': 0,
+            'notices': 2,
+            'metadata': {},
+            'messages': [],
+        }
         self.upload = self.get_upload(
-            'extension.xpi',
-            validation=json.dumps(dict(errors=0, warnings=0, notices=2,
-                                       metadata={}, messages=[],
-                                       signing_summary={
-                                           'trivial': 1, 'low': 0, 'medium': 0,
-                                           'high': 0},
-                                       passed_auto_validation=True
-                                       )))
+            'extension.xpi', validation=json.dumps(result))
         self.post(listed=False)
-        addon = Addon.with_unlisted.get()
-        assert not addon.is_listed
-        version = addon.find_latest_version(
-            channel=amo.RELEASE_CHANNEL_UNLISTED)
-        assert version
-        assert version.channel == amo.RELEASE_CHANNEL_UNLISTED
-        assert addon.status == amo.STATUS_NULL
-        assert mock_sign_file.called
-
-    @mock.patch('olympia.editors.helpers.sign_file')
-    def test_success_unlisted_fail_validation(self, mock_sign_file):
-        assert Addon.with_unlisted.count() == 0
-        self.upload = self.get_upload(
-            'extension.xpi',
-            validation=json.dumps(dict(errors=0, warnings=0, notices=2,
-                                       metadata={}, messages=[],
-                                       signing_summary={
-                                           'trivial': 0, 'low': 1, 'medium': 0,
-                                           'high': 0},
-                                       passed_auto_validation=False
-                                       )))
-        self.post(listed=False)
-        addon = Addon.with_unlisted.get()
-        assert not addon.is_listed
+        addon = Addon.objects.get()
         version = addon.find_latest_version(
             channel=amo.RELEASE_CHANNEL_UNLISTED)
         assert version
@@ -266,20 +270,21 @@ class TestAddonSubmitUpload(UploadTest, TestCase):
 
     def test_missing_platforms(self):
         url = reverse('devhub.submit.upload', args=['listed'])
-        r = self.client.post(url, dict(upload=self.upload.uuid.hex))
-        assert r.status_code == 200
-        assert r.context['new_addon_form'].errors.as_text() == (
+        response = self.client.post(url, {'upload': self.upload.uuid.hex})
+        assert response.status_code == 200
+        assert response.context['new_addon_form'].errors.as_text() == (
             '* supported_platforms\n  * Need at least one platform.')
-        doc = pq(r.content)
+        doc = pq(response.content)
         assert doc('ul.errorlist').text() == (
             'Need at least one platform.')
 
     def test_one_xpi_for_multiple_platforms(self):
         assert Addon.objects.count() == 0
-        r = self.post(supported_platforms=[amo.PLATFORM_MAC,
-                                           amo.PLATFORM_LINUX])
+        response = self.post(
+            supported_platforms=[amo.PLATFORM_MAC, amo.PLATFORM_LINUX])
         addon = Addon.objects.get()
-        self.assert3xx(r, reverse('devhub.submit.details', args=[addon.slug]))
+        self.assert3xx(
+            response, reverse('devhub.submit.details', args=[addon.slug]))
         all_ = sorted([f.filename for f in addon.current_version.all_files])
         assert all_ == [u'xpi_name-0.1-linux.xpi', u'xpi_name-0.1-mac.xpi']
 
@@ -287,27 +292,32 @@ class TestAddonSubmitUpload(UploadTest, TestCase):
     def test_one_xpi_for_multiple_platforms_unlisted_addon(
             self, mock_auto_sign_file):
         assert Addon.objects.count() == 0
-        r = self.post(supported_platforms=[amo.PLATFORM_MAC,
-                                           amo.PLATFORM_LINUX],
-                      listed=False)
+        response = self.post(
+            supported_platforms=[amo.PLATFORM_MAC, amo.PLATFORM_LINUX],
+            listed=False)
         addon = Addon.unfiltered.get()
         latest_version = addon.find_latest_version(
             channel=amo.RELEASE_CHANNEL_UNLISTED)
-        self.assert3xx(r, reverse('devhub.submit.finish', args=[addon.slug]))
+        self.assert3xx(
+            response, reverse('devhub.submit.finish', args=[addon.slug]))
         all_ = sorted([f.filename for f in latest_version.all_files])
         assert all_ == [u'xpi_name-0.1-linux.xpi', u'xpi_name-0.1-mac.xpi']
         mock_auto_sign_file.assert_has_calls(
             [mock.call(f, is_beta=False) for f in latest_version.all_files])
 
     def test_with_source(self):
+        response = self.client.get(
+            reverse('devhub.submit.upload', args=['listed']))
+        assert pq(response.content)('#id_source')
         tdir = temp.gettempdir()
         source = temp.NamedTemporaryFile(suffix=".zip", dir=tdir)
         source.write('a' * (2 ** 21))
         source.seek(0)
         assert Addon.objects.count() == 0
-        r = self.post(source=source)
+        response = self.post(source=source)
         addon = Addon.objects.get()
-        self.assert3xx(r, reverse('devhub.submit.details', args=[addon.slug]))
+        self.assert3xx(
+            response, reverse('devhub.submit.details', args=[addon.slug]))
         assert addon.current_version.source
         assert Addon.objects.get(pk=addon.pk).admin_review
 
@@ -362,14 +372,14 @@ class TestAddonSubmitDetails(TestSubmitBase):
 
     def test_submit_success_required(self):
         # Set/change the required fields only
-        r = self.client.get(self.url)
-        assert r.status_code == 200
+        response = self.client.get(self.url)
+        assert response.status_code == 200
 
         # Post and be redirected - trying to sneak
         # in fields that shouldn't be modified via this form.
-        d = self.get_dict(homepage='foo.com',
-                          tags='whatevs, whatever')
-        self.is_success(d)
+        data = self.get_dict(homepage='foo.com',
+                             tags='whatevs, whatever')
+        self.is_success(data)
 
         addon = self.get_addon()
 
@@ -392,8 +402,8 @@ class TestAddonSubmitDetails(TestSubmitBase):
     def test_submit_success_optional_fields(self):
         # Set/change the optional fields too
         # Post and be redirected
-        d = self.get_dict(minimal=False)
-        self.is_success(d)
+        data = self.get_dict(minimal=False)
+        self.is_success(data)
 
         addon = self.get_addon()
 
@@ -412,57 +422,59 @@ class TestAddonSubmitDetails(TestSubmitBase):
 
     def test_submit_name_length(self):
         # Make sure the name isn't too long.
-        d = self.get_dict(name='a' * 51)
-        r = self.client.post(self.url, d)
-        assert r.status_code == 200
+        data = self.get_dict(name='a' * 51)
+        response = self.client.post(self.url, data)
+        assert response.status_code == 200
         error = 'Ensure this value has at most 50 characters (it has 51).'
-        self.assertFormError(r, 'form', 'name', error)
+        self.assertFormError(response, 'form', 'name', error)
 
     def test_submit_slug_invalid(self):
         # Submit an invalid slug.
-        d = self.get_dict(slug='slug!!! aksl23%%')
-        r = self.client.post(self.url, d)
-        assert r.status_code == 200
-        self.assertFormError(r, 'form', 'slug', "Enter a valid 'slug' " +
-                             "consisting of letters, numbers, underscores or "
-                             "hyphens.")
+        data = self.get_dict(slug='slug!!! aksl23%%')
+        response = self.client.post(self.url, data)
+        assert response.status_code == 200
+        self.assertFormError(response, 'form', 'slug', "Enter a valid 'slug'" +
+                             ' consisting of letters, numbers, underscores or '
+                             'hyphens.')
 
     def test_submit_slug_required(self):
         # Make sure the slug is required.
-        r = self.client.post(self.url, self.get_dict(slug=''))
-        assert r.status_code == 200
-        self.assertFormError(r, 'form', 'slug', 'This field is required.')
+        response = self.client.post(self.url, self.get_dict(slug=''))
+        assert response.status_code == 200
+        self.assertFormError(
+            response, 'form', 'slug', 'This field is required.')
 
     def test_submit_summary_required(self):
         # Make sure summary is required.
-        r = self.client.post(self.url, self.get_dict(summary=''))
-        assert r.status_code == 200
-        self.assertFormError(r, 'form', 'summary', 'This field is required.')
+        response = self.client.post(self.url, self.get_dict(summary=''))
+        assert response.status_code == 200
+        self.assertFormError(
+            response, 'form', 'summary', 'This field is required.')
 
     def test_submit_summary_length(self):
         # Summary is too long.
-        r = self.client.post(self.url, self.get_dict(summary='a' * 251))
-        assert r.status_code == 200
+        response = self.client.post(self.url, self.get_dict(summary='a' * 251))
+        assert response.status_code == 200
         error = 'Ensure this value has at most 250 characters (it has 251).'
-        self.assertFormError(r, 'form', 'summary', error)
+        self.assertFormError(response, 'form', 'summary', error)
 
     def test_submit_categories_required(self):
         del self.cat_initial['categories']
-        r = self.client.post(self.url,
-                             self.get_dict(cat_initial=self.cat_initial))
-        assert r.context['cat_form'].errors[0]['categories'] == (
+        response = self.client.post(
+            self.url, self.get_dict(cat_initial=self.cat_initial))
+        assert response.context['cat_form'].errors[0]['categories'] == (
             ['This field is required.'])
 
     def test_submit_categories_max(self):
         assert amo.MAX_CATEGORIES == 2
         self.cat_initial['categories'] = [22, 1, 71]
-        r = self.client.post(self.url,
-                             self.get_dict(cat_initial=self.cat_initial))
-        assert r.context['cat_form'].errors[0]['categories'] == (
+        response = self.client.post(
+            self.url, self.get_dict(cat_initial=self.cat_initial))
+        assert response.context['cat_form'].errors[0]['categories'] == (
             ['You can have only 2 categories.'])
 
     def test_submit_categories_add(self):
-        assert [c.id for c in self.get_addon().all_categories] == [22]
+        assert [cat.id for cat in self.get_addon().all_categories] == [22]
         self.cat_initial['categories'] = [22, 1]
 
         self.is_success(self.get_dict())
@@ -473,7 +485,7 @@ class TestAddonSubmitDetails(TestSubmitBase):
     def test_submit_categories_addandremove(self):
         AddonCategory(addon=self.addon, category_id=1).save()
         assert sorted(
-            [c.id for c in self.get_addon().all_categories]) == [1, 22]
+            [cat.id for cat in self.get_addon().all_categories]) == [1, 22]
 
         self.cat_initial['categories'] = [22, 71]
         self.client.post(self.url, self.get_dict(cat_initial=self.cat_initial))
@@ -481,10 +493,10 @@ class TestAddonSubmitDetails(TestSubmitBase):
         assert sorted(category_ids_new) == [22, 71]
 
     def test_submit_categories_remove(self):
-        c = Category.objects.get(id=1)
-        AddonCategory(addon=self.addon, category=c).save()
+        category = Category.objects.get(id=1)
+        AddonCategory(addon=self.addon, category=category).save()
         assert sorted(
-            [a.id for a in self.get_addon().all_categories]) == [1, 22]
+            [cat.id for cat in self.get_addon().all_categories]) == [1, 22]
 
         self.cat_initial['categories'] = [22]
         self.client.post(self.url, self.get_dict(cat_initial=self.cat_initial))
@@ -535,6 +547,22 @@ class TestAddonSubmitDetails(TestSubmitBase):
         response = self.client.get(self.url)
         self.assert3xx(response, self.next_step)
 
+    def test_can_cancel_review(self):
+        addon = self.get_addon()
+        addon.versions.latest().files.update(status=amo.STATUS_AWAITING_REVIEW)
+
+        cancel_url = reverse('devhub.addons.cancel', args=['a3615'])
+        versions_url = reverse('devhub.addons.versions', args=['a3615'])
+        response = self.client.post(cancel_url)
+        self.assert3xx(response, versions_url)
+
+        addon = self.get_addon()
+        assert addon.status == amo.STATUS_NULL
+        version = addon.versions.latest()
+        del version.all_files
+        assert version.statuses == [
+            (version.all_files[0].id, amo.STATUS_DISABLED)]
+
 
 class TestAddonSubmitFinish(TestSubmitBase):
 
@@ -558,8 +586,8 @@ class TestAddonSubmitFinish(TestSubmitBase):
     @mock.patch.object(settings, 'SITE_URL', 'http://b.ro')
     @mock.patch('olympia.devhub.tasks.send_welcome_email.delay')
     def test_welcome_email_first_listed_addon(self, send_welcome_email_mock):
-        new_addon = addon_factory(is_listed=False)
-        new_addon.versions.update(channel=amo.RELEASE_CHANNEL_UNLISTED)
+        new_addon = addon_factory(
+            version_kw={'channel': amo.RELEASE_CHANNEL_UNLISTED})
         new_addon.addonuser_set.create(user=self.addon.authors.all()[0])
         self.client.get(self.url)
         context = {
@@ -600,8 +628,7 @@ class TestAddonSubmitFinish(TestSubmitBase):
 
     @mock.patch('olympia.devhub.tasks.send_welcome_email.delay')
     def test_no_welcome_email_if_unlisted(self, send_welcome_email_mock):
-        self.addon.versions.update(channel=amo.RELEASE_CHANNEL_UNLISTED)
-        self.addon.update(is_listed=False, status=amo.STATUS_PUBLIC)
+        self.make_addon_unlisted(self.addon)
         self.client.get(self.url)
         assert not send_welcome_email_mock.called
 
@@ -610,9 +637,9 @@ class TestAddonSubmitFinish(TestSubmitBase):
             channel=amo.RELEASE_CHANNEL_LISTED)
         assert version.supported_platforms == ([amo.PLATFORM_ALL])
 
-        r = self.client.get(self.url)
-        assert r.status_code == 200
-        doc = pq(r.content)
+        response = self.client.get(self.url)
+        assert response.status_code == 200
+        doc = pq(response.content)
 
         content = doc('.addon-submission-process')
         links = content('a')
@@ -629,8 +656,7 @@ class TestAddonSubmitFinish(TestSubmitBase):
         assert links[2].attrib['href'] == reverse('devhub.addons')
 
     def test_finish_submitting_unlisted_addon(self):
-        self.addon.versions.update(channel=amo.RELEASE_CHANNEL_UNLISTED)
-        self.addon.update(is_listed=False, status=amo.STATUS_PUBLIC)
+        self.make_addon_unlisted(self.addon)
 
         latest_version = self.addon.find_latest_version(
             channel=amo.RELEASE_CHANNEL_UNLISTED)
@@ -650,7 +676,6 @@ class TestAddonSubmitFinish(TestSubmitBase):
         assert links[1].attrib['href'] == reverse('devhub.addons')
 
     @mock.patch('olympia.devhub.tasks.send_welcome_email.delay', new=mock.Mock)
-    @override_switch('step-version-upload', active=True)
     def test_finish_submitting_platform_specific_listed_addon(self):
         latest_version = self.addon.find_latest_version(
             channel=amo.RELEASE_CHANNEL_LISTED)
@@ -658,9 +683,9 @@ class TestAddonSubmitFinish(TestSubmitBase):
             status=amo.STATUS_AWAITING_REVIEW, platform=amo.PLATFORM_MAC.id)
         latest_version.save()
         assert latest_version.is_allowed_upload()
-        r = self.client.get(self.url)
-        assert r.status_code == 200
-        doc = pq(r.content)
+        response = self.client.get(self.url)
+        assert response.status_code == 200
+        doc = pq(response.content)
 
         content = doc('.addon-submission-process')
         links = content('a')
@@ -680,7 +705,6 @@ class TestAddonSubmitFinish(TestSubmitBase):
         assert links[3].attrib['href'] == reverse('devhub.addons')
 
     @mock.patch('olympia.devhub.tasks.send_welcome_email.delay', new=mock.Mock)
-    @override_switch('step-version-upload', active=True)
     def test_finish_submitting_platform_specific_unlisted_addon(self):
         self.addon.versions.update(channel=amo.RELEASE_CHANNEL_UNLISTED)
         latest_version = self.addon.find_latest_version(
@@ -689,9 +713,9 @@ class TestAddonSubmitFinish(TestSubmitBase):
             status=amo.STATUS_AWAITING_REVIEW, platform=amo.PLATFORM_MAC.id)
         latest_version.save()
         assert latest_version.is_allowed_upload()
-        r = self.client.get(self.url)
-        assert r.status_code == 200
-        doc = pq(r.content)
+        response = self.client.get(self.url)
+        assert response.status_code == 200
+        doc = pq(response.content)
 
         content = doc('.addon-submission-process')
         links = content('a')
@@ -710,48 +734,34 @@ class TestAddonSubmitFinish(TestSubmitBase):
     def test_addon_no_versions_redirects_to_versions(self):
         self.addon.update(status=amo.STATUS_NULL)
         self.addon.versions.all().delete()
-        r = self.client.get(self.url, follow=True)
-        self.assert3xx(r, self.addon.get_dev_url('versions'), 302)
+        response = self.client.get(self.url, follow=True)
+        # Would go to 'devhub.submit.version' but no previous version means
+        # channel needs to be selected first.
+        self.assert3xx(
+            response,
+            reverse('devhub.submit.version.distribution', args=['a3615']), 302)
 
     def test_incomplete_directs_to_details(self):
         # We get bounced back to details step.
         self.addon.update(status=amo.STATUS_NULL)
         self.addon.categories.all().delete()
-        r = self.client.get(reverse('devhub.submit.finish',
-                                    args=['a3615']), follow=True)
-        self.assert3xx(r, reverse('devhub.submit.details', args=['a3615']))
+        response = self.client.get(
+            reverse('devhub.submit.finish', args=['a3615']), follow=True)
+        self.assert3xx(
+            response, reverse('devhub.submit.details', args=['a3615']))
 
 
 class TestAddonSubmitResume(TestSubmitBase):
 
-    def setUp(self):
-        super(TestAddonSubmitResume, self).setUp()
-        self.url = reverse('devhub.submit.resume', args=['a3615'])
-
-    def test_addon_no_versions_redirects_to_versions(self):
-        self.addon.update(status=amo.STATUS_NULL)
-        self.addon.versions.all().delete()
-        r = self.client.get(self.url, follow=True)
-        self.assert3xx(r, self.addon.get_dev_url('versions'), 302)
-
-    def test_incomplete_directs_to_details(self):
-        # We get bounced back to details step.
-        self.addon.update(status=amo.STATUS_NULL)
-        self.addon.categories.all().delete()
-        r = self.client.get(reverse('devhub.submit.finish',
-                                    args=['a3615']), follow=True)
-        self.assert3xx(r, reverse('devhub.submit.details', args=['a3615']))
-
     def test_redirect_from_other_pages(self):
         self.addon.update(status=amo.STATUS_NULL)
         self.addon.categories.all().delete()
-        r = self.client.get(reverse('devhub.addons.edit', args=['a3615']),
-                            follow=True)
-        self.assert3xx(r, reverse('devhub.submit.details', args=['a3615']))
+        response = self.client.get(
+            reverse('devhub.addons.edit', args=['a3615']), follow=True)
+        self.assert3xx(
+            response, reverse('devhub.submit.details', args=['a3615']))
 
 
-@override_switch('step-version-upload', active=True)
-@override_switch('mixed-listed-unlisted', active=True)
 class TestVersionSubmitDistribution(TestSubmitBase):
 
     def setUp(self):
@@ -773,9 +783,13 @@ class TestVersionSubmitDistribution(TestSubmitBase):
             reverse('devhub.submit.version.upload', args=[
                 self.addon.slug, 'unlisted']))
 
+    def test_no_redirect_for_metadata(self):
+        self.addon.update(status=amo.STATUS_NULL)
+        self.addon.categories.all().delete()
+        response = self.client.get(self.url)
+        assert response.status_code == 200
 
-@override_switch('step-version-upload', active=True)
-@override_switch('mixed-listed-unlisted', active=True)
+
 class TestVersionSubmitAutoChannel(TestSubmitBase):
     """ Just check we chose the right upload channel.  The upload tests
     themselves are in other tests. """
@@ -813,35 +827,6 @@ class TestVersionSubmitAutoChannel(TestSubmitBase):
                     args=[self.addon.slug]))
 
 
-@override_switch('step-version-upload', active=True)
-@override_switch('mixed-listed-unlisted', active=False)
-class TestVersionSubmitAutoChannelNoMixed(TestSubmitBase):
-
-    def setUp(self):
-        super(TestVersionSubmitAutoChannelNoMixed, self).setUp()
-        self.url = reverse('devhub.submit.version', args=[self.addon.slug])
-
-    @mock.patch('olympia.devhub.views._submit_upload',
-                side_effect=views._submit_upload)
-    def test_redirect_listed_based_on_is_listed(self, _submit_upload_mock):
-        self.addon.update(is_listed=True)
-        self.client.post(self.url)
-        args, _ = _submit_upload_mock.call_args
-        assert args[1:] == (
-            self.addon, amo.RELEASE_CHANNEL_LISTED,
-            'devhub.submit.version.details', 'devhub.submit.version.finish')
-
-    @mock.patch('olympia.devhub.views._submit_upload',
-                side_effect=views._submit_upload)
-    def test_redirect_unlisted_based_on_is_listed(self, _submit_upload_mock):
-        self.addon.update(is_listed=False)
-        self.client.post(self.url)
-        args, _ = _submit_upload_mock.call_args
-        assert args[1:] == (
-            self.addon, amo.RELEASE_CHANNEL_UNLISTED,
-            'devhub.submit.version.details', 'devhub.submit.version.finish')
-
-
 class VersionSubmitUploadMixin(object):
     channel = None
     fixtures = ['base/users', 'base/addon_3615']
@@ -853,8 +838,6 @@ class VersionSubmitUploadMixin(object):
         self.version = self.addon.current_version
         self.addon.update(guid='guid@xpi')
         assert self.client.login(email='del@icio.us')
-        self.addon.update(
-            is_listed=(self.channel == amo.RELEASE_CHANNEL_LISTED))
         self.addon.versions.update(channel=self.channel)
         channel = ('listed' if self.channel == amo.RELEASE_CHANNEL_LISTED else
                    'unlisted')
@@ -867,17 +850,23 @@ class VersionSubmitUploadMixin(object):
              beta=False):
         if supported_platforms is None:
             supported_platforms = [amo.PLATFORM_MAC]
-        d = dict(upload=self.upload.uuid.hex, source=source,
-                 supported_platforms=[p.id for p in supported_platforms],
-                 admin_override_validation=override_validation, beta=beta)
-        r = self.client.post(self.url, d)
-        assert r.status_code == expected_status
-        return r
+        data = {
+            'upload': self.upload.uuid.hex,
+            'source': source,
+            'supported_platforms': [p.id for p in supported_platforms],
+            'admin_override_validation': override_validation,
+            'beta': beta
+        }
+        response = self.client.post(self.url, data)
+        assert response.status_code == expected_status
+        return response
 
     def get_next_url(self, version):
         raise NotImplementedError
 
     def test_with_source(self):
+        response = self.client.get(self.url)
+        assert pq(response.content)('#id_source')
         tdir = temp.gettempdir()
         source = temp.NamedTemporaryFile(suffix=".zip", dir=tdir)
         source.write('a' * (2 ** 21))
@@ -898,9 +887,9 @@ class VersionSubmitUploadMixin(object):
             '* source\n  * Unsupported file type, please upload an archive ')
 
     def test_missing_platforms(self):
-        r = self.client.post(self.url, dict(upload=self.upload.uuid.hex))
-        assert r.status_code == 200
-        assert r.context['new_addon_form'].errors.as_text() == (
+        response = self.client.post(self.url, {'upload': self.upload.uuid.hex})
+        assert response.status_code == 200
+        assert response.context['new_addon_form'].errors.as_text() == (
             '* supported_platforms\n  * Need at least one platform.')
 
     def test_one_xpi_for_multiple_platforms(self):
@@ -914,29 +903,41 @@ class VersionSubmitUploadMixin(object):
 
     def test_unique_version_num(self):
         self.version.update(version='0.1')
-        r = self.post(expected_status=200)
-        assert pq(r.content)('ul.errorlist').text() == (
-            'Version 0.1 already exists, or was uploaded before.')
+        response = self.post(expected_status=200)
+        assert pq(response.content)('ul.errorlist').text() == (
+            'Version 0.1 already exists.')
 
     def test_same_version_if_previous_is_rejected(self):
         # We can't re-use the same version number, even if the previous
         # versions have been disabled/rejected.
         self.version.update(version='0.1')
         self.version.files.update(status=amo.STATUS_DISABLED)
-        r = self.post(expected_status=200)
-        assert pq(r.content)('ul.errorlist').text() == (
-            'Version 0.1 already exists, or was uploaded before.')
+        response = self.post(expected_status=200)
+        assert pq(response.content)('ul.errorlist').text() == (
+            'Version 0.1 already exists.')
 
     def test_same_version_if_previous_is_deleted(self):
         # We can't re-use the same version number if the previous
         # versions has been deleted either.
         self.version.update(version='0.1')
         self.version.delete()
-        r = self.post(expected_status=200)
-        assert pq(r.content)('ul.errorlist').text() == (
-            'Version 0.1 already exists, or was uploaded before.')
+        response = self.post(expected_status=200)
+        assert pq(response.content)('ul.errorlist').text() == (
+            'Version 0.1 was uploaded before and deleted.')
 
-    @override_switch('mixed-listed-unlisted', active=True)
+    def test_same_version_if_previous_is_awaiting_review(self):
+        # We can't re-use the same version number - offer to continue.
+        self.version.update(version='0.1')
+        self.version.files.update(status=amo.STATUS_AWAITING_REVIEW)
+        response = self.post(expected_status=200)
+        assert pq(response.content)('ul.errorlist').text() == (
+            'Version 0.1 already exists. '
+            'Continue with existing upload instead?')
+        # url is always to the details page even for unlisted (will redirect).
+        assert pq(response.content)('ul.errorlist a').attr('href') == (
+            reverse('devhub.submit.version.details', args=[
+                self.addon.slug, self.version.pk]))
+
     def test_distribution_link(self):
         response = self.client.get(self.url)
         channel_text = ('listed' if self.channel == amo.RELEASE_CHANNEL_LISTED
@@ -947,24 +948,29 @@ class VersionSubmitUploadMixin(object):
         assert doc('.addon-submit-distribute a').attr('href') == (
             distribution_url + '?channel=' + channel_text)
 
-    @override_switch('mixed-listed-unlisted', active=False)
-    def test_distribution_link_hidden(self):
-        response = self.client.get(self.url)
-        doc = pq(response.content)
-        assert doc('.addon-submit-distribute a').length == 0
-
     def test_beta_field(self):
         response = self.client.get(self.url)
         doc = pq(response.content)
         assert doc('.beta-status').length
 
+    def test_no_beta_field_when_addon_not_approved(self):
+        self.addon.update(status=amo.STATUS_NULL)
+        response = self.client.get(self.url)
+        doc = pq(response.content)
+        assert not doc('.beta-status').length
+
     def test_url_is_404_for_disabled_addons(self):
         self.addon.update(status=amo.STATUS_DISABLED)
-        r = self.client.get(self.url)
-        assert r.status_code == 404
+        response = self.client.get(self.url)
+        assert response.status_code == 404
+
+    def test_no_redirect_for_metadata(self):
+        self.addon.update(status=amo.STATUS_NULL)
+        self.addon.categories.all().delete()
+        response = self.client.get(self.url)
+        assert response.status_code == 200
 
 
-@override_switch('step-version-upload', active=True)
 class TestVersionSubmitUploadListed(VersionSubmitUploadMixin, UploadTest):
     channel = amo.RELEASE_CHANNEL_LISTED
 
@@ -991,11 +997,8 @@ class TestVersionSubmitUploadListed(VersionSubmitUploadMixin, UploadTest):
             validation=json.dumps({
                 "notices": 2, "errors": 0, "messages": [],
                 "metadata": {}, "warnings": 1,
-                "signing_summary": {"trivial": 1, "low": 0,
-                                    "medium": 0, "high": 1},
-                "passed_auto_validation": 0}))
-        self.addon.update(guid='experiment@xpi', is_listed=True,
-                          status=amo.STATUS_PUBLIC)
+            }))
+        self.addon.update(guid='experiment@xpi', status=amo.STATUS_PUBLIC)
         self.post()
         # Make sure the file created and signed is for this addon.
         assert mock_sign_file.call_count == 1
@@ -1008,10 +1011,16 @@ class TestVersionSubmitUploadListed(VersionSubmitUploadMixin, UploadTest):
         assert log.action == amo.LOG.EXPERIMENT_SIGNED.id
 
     def test_force_beta(self):
-        self.post(beta=True)
+        response = self.post(beta=True)
         # Need latest() rather than find_latest_version as Beta isn't returned.
         version = self.addon.versions.latest()
         assert version.all_files[0].status == amo.STATUS_BETA
+
+        # Beta versions should skip the details step.
+        finish_url = reverse('devhub.submit.version.finish', args=[
+            self.addon.slug, version.pk])
+        assert finish_url != self.get_next_url(version)
+        self.assert3xx(response, finish_url)
 
     def test_incomplete_addon_now_nominated(self):
         """Uploading a new version for an incomplete addon should set it to
@@ -1025,7 +1034,6 @@ class TestVersionSubmitUploadListed(VersionSubmitUploadMixin, UploadTest):
         assert self.addon.status == amo.STATUS_NOMINATED
 
 
-@override_switch('step-version-upload', active=True)
 class TestVersionSubmitUploadUnlisted(VersionSubmitUploadMixin, UploadTest):
     channel = amo.RELEASE_CHANNEL_UNLISTED
 
@@ -1037,34 +1045,15 @@ class TestVersionSubmitUploadUnlisted(VersionSubmitUploadMixin, UploadTest):
     def test_success(self, mock_sign_file):
         """Sign automatically."""
         # No validation errors or warning.
+        result = {
+            'errors': 0,
+            'warnings': 0,
+            'notices': 2,
+            'metadata': {},
+            'messages': [],
+        }
         self.upload = self.get_upload(
-            'extension.xpi',
-            validation=json.dumps(dict(errors=0, warnings=0, notices=2,
-                                       metadata={}, messages=[],
-                                       signing_summary={
-                                           'trivial': 1, 'low': 0, 'medium': 0,
-                                           'high': 0},
-                                       passed_auto_validation=True
-                                       )))
-        response = self.post()
-        version = self.addon.find_latest_version(
-            channel=amo.RELEASE_CHANNEL_UNLISTED)
-        assert version.channel == amo.RELEASE_CHANNEL_UNLISTED
-        assert version.all_files[0].status == amo.STATUS_PUBLIC
-        self.assert3xx(response, self.get_next_url(version))
-        assert mock_sign_file.called
-
-    @mock.patch('olympia.editors.helpers.sign_file')
-    def test_success_fail_validation(self, mock_sign_file):
-        self.upload = self.get_upload(
-            'extension.xpi',
-            validation=json.dumps(dict(errors=0, warnings=0, notices=2,
-                                       metadata={}, messages=[],
-                                       signing_summary={
-                                           'trivial': 0, 'low': 1, 'medium': 0,
-                                           'high': 0},
-                                       passed_auto_validation=False
-                                       )))
+            'extension.xpi', validation=json.dumps(result))
         response = self.post()
         version = self.addon.find_latest_version(
             channel=amo.RELEASE_CHANNEL_UNLISTED)
@@ -1090,7 +1079,6 @@ class TestVersionSubmitUploadUnlisted(VersionSubmitUploadMixin, UploadTest):
         assert version.all_files[0].status != amo.STATUS_BETA
 
 
-@override_switch('step-version-upload', active=True)
 class TestVersionSubmitDetails(TestSubmitBase):
 
     def setUp(self):
@@ -1105,8 +1093,8 @@ class TestVersionSubmitDetails(TestSubmitBase):
 
     def test_submit_empty_is_okay(self):
         assert all(self.get_addon().get_required_metadata())
-        r = self.client.get(self.url)
-        assert r.status_code == 200
+        response = self.client.get(self.url)
+        assert response.status_code == 200
 
         response = self.client.post(self.url, {})
         self.assert3xx(
@@ -1118,8 +1106,8 @@ class TestVersionSubmitDetails(TestSubmitBase):
 
     def test_submit_success(self):
         assert all(self.get_addon().get_required_metadata())
-        r = self.client.get(self.url)
-        assert r.status_code == 200
+        response = self.client.get(self.url)
+        assert response.status_code == 200
 
         # Post and be redirected - trying to sneak in a field that shouldn't
         # be modified when this is not the first listed version.
@@ -1145,8 +1133,61 @@ class TestVersionSubmitDetails(TestSubmitBase):
             response, reverse('devhub.submit.version.finish',
                               args=[self.addon.slug, self.version.pk]))
 
+    def test_can_cancel_review(self):
+        addon = self.get_addon()
+        addon_status = addon.status
+        addon.versions.latest().files.update(status=amo.STATUS_AWAITING_REVIEW)
 
-@override_switch('step-version-upload', active=True)
+        cancel_url = reverse('devhub.addons.cancel', args=['a3615'])
+        versions_url = reverse('devhub.addons.versions', args=['a3615'])
+        response = self.client.post(cancel_url)
+        self.assert3xx(response, versions_url)
+
+        addon = self.get_addon()
+        assert addon.status == addon_status  # No change.
+        version = addon.versions.latest()
+        del version.all_files
+        assert version.statuses == [
+            (version.all_files[0].id, amo.STATUS_DISABLED)]
+
+    def test_public_addon_stays_public_even_if_had_missing_metadata(self):
+        """Posting details for a new version for a public add-on that somehow
+        had missing metadata despite being public shouldn't reset it to
+        nominated."""
+        # Create a built-in License we'll use later when posting.
+        License.objects.create(builtin=3, on_form=True)
+
+        # Remove license from existing versions, but make sure the addon is
+        # still public, just lacking metadata now.
+        self.addon.versions.update(license_id=None)
+        self.addon.reload()
+        assert self.addon.status == amo.STATUS_PUBLIC
+        assert not self.addon.has_complete_metadata()
+
+        # Now, submit details for that new version, adding license. Since
+        # metadata is missing, name, slug, summary and category are required to
+        # be present.
+        data = {
+            'name': unicode(self.addon.name),
+            'slug': self.addon.slug,
+            'summary': unicode(self.addon.summary),
+
+            'form-0-categories': [22, 1],
+            'form-0-application': 1,
+            'form-INITIAL_FORMS': 1,
+            'form-TOTAL_FORMS': 1,
+
+            'license-builtin': 3,
+        }
+        response = self.client.post(self.url, data)
+        self.assert3xx(
+            response, reverse('devhub.submit.version.finish',
+                              args=[self.addon.slug, self.version.pk]))
+        self.addon.reload()
+        assert self.addon.has_complete_metadata()
+        assert self.addon.status == amo.STATUS_PUBLIC
+
+
 class TestVersionSubmitDetailsFirstListed(TestAddonSubmitDetails):
     """ Testing the case of a listed version being submitted on an add-on that
     previously only had unlisted versions - so is missing metadata."""
@@ -1155,13 +1196,13 @@ class TestVersionSubmitDetailsFirstListed(TestAddonSubmitDetails):
         self.addon.versions.update(channel=amo.RELEASE_CHANNEL_UNLISTED)
         self.version = version_factory(addon=self.addon,
                                        channel=amo.RELEASE_CHANNEL_LISTED)
+        self.version.update(license=None)  # Addon needs to be missing data.
         self.url = reverse('devhub.submit.version.details',
                            args=['a3615', self.version.pk])
         self.next_step = reverse('devhub.submit.version.finish',
                                  args=['a3615', self.version.pk])
 
 
-@override_switch('step-version-upload', active=True)
 class TestVersionSubmitFinish(TestAddonSubmitFinish):
 
     def setUp(self):
@@ -1199,7 +1240,6 @@ class TestVersionSubmitFinish(TestAddonSubmitFinish):
         pass
 
 
-@override_switch('step-version-upload', active=True)
 class TestFileSubmitUpload(UploadTest):
     fixtures = ['base/users', 'base/addon_3615']
 
@@ -1226,12 +1266,16 @@ class TestFileSubmitUpload(UploadTest):
              beta=False):
         if supported_platforms is None:
             supported_platforms = [amo.PLATFORM_MAC]
-        d = dict(upload=self.upload.uuid.hex, source=source,
-                 supported_platforms=[p.id for p in supported_platforms],
-                 admin_override_validation=override_validation, beta=beta)
-        r = self.client.post(self.url, d)
-        assert r.status_code == expected_status, r.content
-        return r
+        data = {
+            'upload': self.upload.uuid.hex,
+            'source': source,
+            'supported_platforms': [p.id for p in supported_platforms],
+            'admin_override_validation': override_validation,
+            'beta': beta
+        }
+        response = self.client.post(self.url, data)
+        assert response.status_code == expected_status, response.content
+        return response
 
     def test_success_listed(self):
         files_pre = self.version.all_files
@@ -1245,7 +1289,7 @@ class TestFileSubmitUpload(UploadTest):
         new_file = self.version.all_files[-1]
         assert new_file.status == amo.STATUS_AWAITING_REVIEW
         assert new_file.platform == amo.PLATFORM_MAC.id
-        next_url = reverse('devhub.submit.version.finish',
+        next_url = reverse('devhub.submit.file.finish',
                            args=[self.addon.slug, self.version.pk])
         self.assert3xx(response, next_url)
         log_items = ActivityLog.objects.for_addons(self.addon)
@@ -1254,13 +1298,14 @@ class TestFileSubmitUpload(UploadTest):
     def test_success_unlisted(self):
         self.version.update(channel=amo.RELEASE_CHANNEL_UNLISTED)
         files_pre = self.version.all_files
-        FileValidation.from_json(
-            files_pre[0],
-            json.dumps(dict(errors=0, warnings=0, notices=2, metadata={},
-                            messages=[],
-                            signing_summary={'trivial': 1, 'low': 0,
-                                             'medium': 0, 'high': 0},
-                            passed_auto_validation=True)))
+        result = {
+            'errors': 0,
+            'warnings': 0,
+            'notices': 2,
+            'metadata': {},
+            'messages': [],
+        }
+        FileValidation.from_json(files_pre[0], json.dumps(result))
         response = self.post()
         assert self.version == self.addon.find_latest_version(
             channel=amo.RELEASE_CHANNEL_UNLISTED)
@@ -1271,7 +1316,7 @@ class TestFileSubmitUpload(UploadTest):
         new_file = self.version.all_files[-1]
         assert new_file.status == amo.STATUS_PUBLIC
         assert new_file.platform == amo.PLATFORM_MAC.id
-        next_url = reverse('devhub.submit.version.finish',
+        next_url = reverse('devhub.submit.file.finish',
                            args=[self.addon.slug, self.version.pk])
         self.assert3xx(response, next_url)
         log_items = ActivityLog.objects.for_addons(self.addon)
@@ -1283,14 +1328,14 @@ class TestFileSubmitUpload(UploadTest):
         self.version.all_files[0].update(status=amo.STATUS_PUBLIC)
         assert not self.version.is_allowed_upload()
 
-        r = self.post(expected_status=200)
-        assert pq(r.content)('ul.errorlist').text() == (
+        response = self.post(expected_status=200)
+        assert pq(response.content)('ul.errorlist').text() == (
             'You cannot upload any more files for this version.')
 
     def test_failure_when_version_number_doesnt_match(self):
         self.version.update(version='99')
-        r = self.post(expected_status=200)
-        assert pq(r.content)('ul.errorlist').text() == (
+        response = self.post(expected_status=200)
+        assert pq(response.content)('ul.errorlist').text() == (
             "Version doesn't match")
 
     def test_force_beta_is_ignored(self):
@@ -1304,16 +1349,36 @@ class TestFileSubmitUpload(UploadTest):
         """Files must have the same beta status as the existing version."""
         existing_file = self.version.all_files[0]
         existing_file.update(status=amo.STATUS_BETA)
-        FileValidation.from_json(
-            existing_file,
-            json.dumps(dict(errors=0, warnings=0, notices=2, metadata={},
-                            messages=[],
-                            signing_summary={'trivial': 1, 'low': 0,
-                                             'medium': 0, 'high': 0},
-                            passed_auto_validation=True)))
+        result = {
+            'errors': 0,
+            'warnings': 0,
+            'notices': 2,
+            'metadata': {},
+            'messages': [],
+        }
+        FileValidation.from_json(existing_file, json.dumps(result))
         self.version.save()
 
         self.post(beta=False)
         # Need latest() rather than find_latest_version as Beta isn't returned.
         version = self.addon.versions.latest()
         assert version.all_files[0].status == amo.STATUS_BETA
+
+    def test_with_source_ignored(self):
+        # Source submit shouldn't be on the page
+        response = self.client.get(self.url)
+        assert not pq(response.content)('#id_source')
+
+        # And even if submitted, should be ignored.
+        tdir = temp.gettempdir()
+        source = temp.NamedTemporaryFile(suffix=".zip", dir=tdir)
+        source.write('a' * (2 ** 21))
+        source.seek(0)
+        # source should be ignored
+        response = self.post(source=source)
+        version = self.addon.find_latest_version(channel=self.version.channel)
+        assert not version.source
+        next_url = reverse('devhub.submit.file.finish',
+                           args=[self.addon.slug, self.version.pk])
+        self.assert3xx(response, next_url)
+        assert not self.addon.reload().admin_review

@@ -29,6 +29,22 @@ class TestUserProfile(TestCase):
     fixtures = ('base/addon_3615', 'base/user_2519', 'base/user_4043307',
                 'users/test_backends')
 
+    def test_is_developer(self):
+        user = UserProfile.objects.get(id=4043307)
+        assert not user.addonuser_set.exists()
+        assert not user.is_developer
+
+        addon = Addon.objects.get(pk=3615)
+        addon.addonuser_set.create(user=user)
+
+        assert not user.is_developer  # it's a cached property...
+        del user.is_developer  # ... let's reset it and try again.
+        assert user.is_developer
+
+        addon.delete()
+        del user.is_developer
+        assert not user.is_developer
+
     def test_anonymize(self):
         u = UserProfile.objects.get(id='4043307')
         assert u.email == 'jbalogh@mozilla.com'
@@ -194,16 +210,6 @@ class TestUserProfile(TestCase):
         addons = UserProfile.objects.get(id=2519).my_addons()
         assert sorted(a.name for a in addons) == [addon1.name, addon2.name]
 
-    def test_my_addons_with_unlisted_addons(self):
-        """Test helper method can return unlisted addons."""
-        addon1 = Addon.objects.create(name='test-1', type=amo.ADDON_EXTENSION)
-        AddonUser.objects.create(addon_id=addon1.id, user_id=2519, listed=True)
-        addon2 = Addon.objects.create(name='test-2', type=amo.ADDON_EXTENSION,
-                                      is_listed=False)
-        AddonUser.objects.create(addon_id=addon2.id, user_id=2519, listed=True)
-        addons = UserProfile.objects.get(id=2519).my_addons(with_unlisted=True)
-        assert sorted(a.name for a in addons) == [addon1.name, addon2.name]
-
     def test_mobile_collection(self):
         u = UserProfile.objects.get(id='4043307')
         assert not Collection.objects.filter(author=u)
@@ -303,6 +309,19 @@ class TestUserProfile(TestCase):
         user = UserProfile.objects.get(id='4043307')
         with self.assertRaises(NotImplementedError):
             user.check_password('password')
+
+    def test_get_session_auth_hash(self):
+        user = UserProfile.objects.get(id=4043307)
+        user.update(auth_id=None)
+        assert user.get_session_auth_hash() is None
+
+        user.update(auth_id=12345)
+        hash1 = user.get_session_auth_hash()
+        assert hash1
+
+        user.update(auth_id=67890)
+        hash2 = user.get_session_auth_hash()
+        assert hash1 != hash2
 
 
 class TestDeniedName(TestCase):

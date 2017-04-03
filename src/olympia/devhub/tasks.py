@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import datetime
 import json
-import logging
 import os
 import socket
 import subprocess
@@ -17,13 +16,15 @@ from django.core.cache import cache
 from django.core.files.storage import default_storage as storage
 from django.core.management import call_command
 from django.utils.translation import ugettext as _
+
 from celery.exceptions import SoftTimeLimitExceeded
 from celery.result import AsyncResult
 from django_statsd.clients import statsd
 from PIL import Image
-
 import validator
+import waffle
 
+import olympia.core.logger
 from olympia import amo
 from olympia.amo.celery import task
 from olympia.amo.decorators import atomic, set_modified_on, write
@@ -35,33 +36,34 @@ from olympia.applications.models import AppVersion
 from olympia.files.helpers import copyfileobj
 from olympia.files.models import FileUpload, File, FileValidation
 from olympia.files.utils import is_beta
+from olympia.versions.compare import version_int
 from olympia.versions.models import Version
 
 
-log = logging.getLogger('z.devhub.task')
+log = olympia.core.logger.getLogger('z.devhub.task')
 
 
 def validate(file_, listed=None, subtask=None):
-    """Run the validator on the given File or FileUpload object, and annotate
-    the results using the ValidationAnnotator. If a task has already begun
-    for this file, instead return an AsyncResult object for that task.
+    """Run the validator on the given File or FileUpload object. If a task has
+    already begun for this file, instead return an AsyncResult object for that
+    task.
 
     file_ can be either a File or FileUpload; if File then listed must be
     None; if FileUpload listed must be specified."""
 
     # Import loop.
-    from .utils import ValidationAnnotator
-    annotator = ValidationAnnotator(file_, listed=listed)
+    from .utils import Validator
+    validator = Validator(file_, listed=listed)
 
-    task_id = cache.get(annotator.cache_key)
+    task_id = cache.get(validator.cache_key)
     if task_id:
         return AsyncResult(task_id)
     else:
-        chain = annotator.task
+        chain = validator.task
         if subtask is not None:
             chain |= subtask
         result = chain.delay()
-        cache.set(annotator.cache_key, result.task_id, 5 * 60)
+        cache.set(validator.cache_key, result.task_id, 5 * 60)
         return result
 
 
@@ -132,12 +134,6 @@ def validation_task(fn):
         try:
             data = fn(id_, hash_, *args, **kw)
             result = json.loads(data)
-
-            if hash_:
-                # Import loop.
-                from .utils import ValidationComparator
-                ValidationComparator(result).annotate_results(hash_)
-
             return result
         except Exception, e:
             log.exception('Unhandled error during validation: %r' % e)
@@ -158,7 +154,7 @@ def validate_file_path(path, hash_, listed=True, is_webextension=False, **kw):
     """Run the validator against a file at the given path, and return the
     results.
 
-    Should only be called directly by ValidationAnnotator."""
+    Should only be called directly by Validator."""
     if is_webextension:
         return run_addons_linter(path, listed=listed)
     return run_validator(path, listed=listed)
@@ -169,7 +165,7 @@ def validate_file(file_id, hash_, is_webextension=False, **kw):
     """Validate a File instance. If cached validation results exist, return
     those, otherwise run the validator.
 
-    Should only be called directly by ValidationAnnotator."""
+    Should only be called directly by Validator."""
 
     file_ = File.objects.get(pk=file_id)
     try:
@@ -186,20 +182,19 @@ def validate_file(file_id, hash_, is_webextension=False, **kw):
 
 @task
 @write
-def handle_upload_validation_result(results, upload_pk, channel,
-                                    annotate=True):
-    """Annotates a set of validation results, unless `annotate` is false, and
-    saves them to the given FileUpload instance."""
-    if annotate:
-        results = annotate_validation_results(results)
-
+def handle_upload_validation_result(results, upload_pk, channel):
+    """Annotate a set of validation results and save them to the given
+    FileUpload instance."""
     upload = FileUpload.objects.get(pk=upload_pk)
 
-    if upload.addon_id and upload.version:
+    if not upload.addon_id:
+        results = annotate_new_legacy_addon_restrictions(results=results)
+    elif upload.addon_id and upload.version:
         results = annotate_webext_incompatibilities(
             results=results, file_=None, addon=upload.addon,
             version_string=upload.version, channel=channel)
 
+    results = skip_signing_warning_if_signing_server_not_configured(results)
     upload.validation = json.dumps(results)
     upload.save()  # We want to hit the custom save().
 
@@ -252,11 +247,9 @@ def handle_upload_validation_result(results, upload_pk, channel,
 # the result to a FileValidation object.
 @task(ignore_result=False)
 @write
-def handle_file_validation_result(results, file_id, annotate=True):
-    """Annotates a set of validation results, unless `annotate is false, and
-    saves them to the given File instance."""
-    if annotate:
-        results = annotate_validation_results(results)
+def handle_file_validation_result(results, file_id, *args):
+    """Annotate a set of validation results and save them to the given File
+    instance."""
 
     file_ = File.objects.get(pk=file_id)
 
@@ -264,7 +257,57 @@ def handle_file_validation_result(results, file_id, annotate=True):
         results=results, file_=file_, addon=file_.version.addon,
         version_string=file_.version.version, channel=file_.version.channel)
 
+    results = skip_signing_warning_if_signing_server_not_configured(results)
     return FileValidation.from_json(file_, results)
+
+
+def annotate_new_legacy_addon_restrictions(results):
+    """
+    Annotate validation results to restrict uploads of new legacy
+    (non-webextension) add-ons if specific conditions are met.
+    """
+    metadata = results.get('metadata', {})
+    target_apps = metadata.get('applications', {})
+    max_target_firefox_version = max(
+        version_int(target_apps.get('firefox', {}).get('max', '')),
+        version_int(target_apps.get('android', {}).get('max', ''))
+    )
+
+    is_webextension = metadata.get('is_webextension') is True
+    is_extension_type = metadata.get('is_extension') is True
+    is_targeting_firefoxes_only = (
+        set(target_apps.keys()).intersection(('firefox', 'android')) ==
+        set(target_apps.keys())
+    )
+    is_targeting_firefox_lower_than_53_only = (
+        metadata.get('strict_compatibility') is True and
+        # version_int('') is actually 200100. If strict compatibility is true,
+        # the validator should have complained about the non-existant max
+        # version, but it doesn't hurt to check that the value is sane anyway.
+        max_target_firefox_version > 200100 and
+        max_target_firefox_version < 53000000200100
+    )
+
+    if (is_extension_type and
+            not is_webextension and
+            is_targeting_firefoxes_only and
+            not is_targeting_firefox_lower_than_53_only and
+            waffle.switch_is_active('restrict-new-legacy-submissions')):
+
+        msg = _(u'Starting with Firefox 53, new extensions on this site can '
+                u'only be WebExtensions.')
+
+        messages = results['messages']
+        messages.insert(0, {
+            'tier': 1,
+            'type': 'error',
+            'id': ['validation', 'messages', 'legacy_extensions_restricted'],
+            'message': msg,
+            'description': [],
+            'compatibility_type': None
+        })
+        results['errors'] += 1
+    return results
 
 
 def annotate_webext_incompatibilities(results, file_, addon, version_string,
@@ -321,51 +364,18 @@ def annotate_webext_incompatibilities(results, file_, addon, version_string,
             'message': msg,
             'description': [],
             'compatibility_type': None})
-        results['errors'] += 1
+        if channel == amo.RELEASE_CHANNEL_LISTED:
+            results['errors'] += 1
+        else:
+            results['warnings'] += 1
 
     return results
 
 
-def addon_can_be_signed(validation):
-    """
-    Given a dict of add-on validation results, returns True if add-on can be
-    signed.
-    """
-    summary = validation.get('signing_summary', {})
-    # Check for any errors that should prevent signing.
-    return (summary.get('low', 0) == 0 and
-            summary.get('medium', 0) == 0 and
-            summary.get('high', 0) == 0)
-
-
-def annotate_validation_results(results):
-    """Annotates validation results with information such as whether the
-    results pass auto validation, and which results are unchanged from a
-    previous submission and can be ignored."""
-
-    if isinstance(results, dict):
-        validation = results
-    else:
-        # Import loop.
-        from .utils import ValidationComparator
-
-        validation = (ValidationComparator(results[1])
-                      .compare_results(results[0]))
-
-    validation.setdefault('signing_summary',
-                          {'trivial': 0, 'low': 0,
-                           'medium': 0, 'high': 0})
-
-    validation['passed_auto_validation'] = addon_can_be_signed(validation)
-
-    if not settings.SIGNING_SERVER:
-        validation = skip_signing_warning(validation)
-
-    return validation
-
-
-def skip_signing_warning(result):
+def skip_signing_warning_if_signing_server_not_configured(result):
     """Remove the "Package already signed" warning if we're not signing."""
+    if settings.SIGNING_SERVER:
+        return result
     try:
         messages = result['messages']
     except (KeyError, ValueError):
@@ -537,15 +547,10 @@ def track_validation_stats(json_result, addons_linter=False):
     statsd.incr('devhub.{}.results.all.{}'.format(runner, result_kind))
 
     listed_tag = 'listed' if result['metadata']['listed'] else 'unlisted'
-    signable_tag = ('is_signable' if addon_can_be_signed(result)
-                    else 'is_not_signable')
 
     # Track listed/unlisted success/fail.
     statsd.incr('devhub.{}.results.{}.{}'
                 .format(runner, listed_tag, result_kind))
-    # Track how many listed/unlisted add-ons can be automatically signed.
-    statsd.incr('devhub.{}.results.{}.{}'
-                .format(runner, listed_tag, signable_tag))
 
 
 @task

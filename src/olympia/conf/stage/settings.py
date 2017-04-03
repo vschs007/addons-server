@@ -37,7 +37,6 @@ ENV = env('ENV')
 DEBUG = False
 DEBUG_PROPAGATE_EXCEPTIONS = False
 SESSION_COOKIE_SECURE = True
-CRONJOB_LOCK_PREFIX = DOMAIN
 
 API_THROTTLE = False
 
@@ -85,8 +84,6 @@ SERVICES_DATABASE = env.db('SERVICES_DATABASE_URL')
 
 SLAVE_DATABASES = ['slave']
 
-CACHE_PREFIX = 'olympia.%s' % ENV
-KEY_PREFIX = CACHE_PREFIX
 CACHE_MIDDLEWARE_KEY_PREFIX = CACHE_PREFIX
 
 CACHES = {}
@@ -186,8 +183,6 @@ GOOGLE_ANALYTICS_CREDENTIALS = env.dict('GOOGLE_ANALYTICS_CREDENTIALS')
 GOOGLE_ANALYTICS_CREDENTIALS['user_agent'] = None
 GOOGLE_ANALYTICS_CREDENTIALS['token_expiry'] = datetime.datetime(2013, 1, 3, 1, 20, 16, 45465)  # noqa
 
-GOOGLE_API_CREDENTIALS = env('GOOGLE_API_CREDENTIALS')
-
 GEOIP_URL = 'https://geo.services.mozilla.com'
 
 AES_KEYS = env.dict('AES_KEYS')
@@ -256,8 +251,18 @@ FXA_CONFIG = {
             'https://addons-admin.stage.mozaws.net/fxa-authenticate',
         'scope': 'profile',
     },
+    'amo': {
+        'client_id': env('AMO_FXA_CLIENT_ID'),
+        'client_secret': env('AMO_FXA_CLIENT_SECRET'),
+        'content_host': 'https://accounts.firefox.com',
+        'oauth_host': 'https://oauth.accounts.firefox.com/v1',
+        'profile_host': 'https://profile.accounts.firefox.com/v1',
+        'redirect_url':
+            'https://addons.allizom.org/api/v3/accounts/authenticate/',
+        'scope': 'profile',
+        'skip_register_redirect': True,
+    },
 }
-FXA_CONFIG['amo'] = FXA_CONFIG['default']
 DEFAULT_FXA_CONFIG_NAME = 'default'
 INTERNAL_FXA_CONFIG_NAME = 'internal'
 ALLOWED_FXA_CONFIGS = ['default', 'amo']
@@ -272,3 +277,6 @@ READ_ONLY = env.bool('READ_ONLY', default=False)
 RAVEN_DSN = (
     'https://e35602be5252460d97587478bcc642df@sentry.prod.mozaws.net/77')
 RAVEN_ALLOW_LIST = ['addons.allizom.org', 'addons-cdn.allizom.org']
+
+GITHUB_API_USER = env('GITHUB_API_USER')
+GITHUB_API_TOKEN = env('GITHUB_API_TOKEN')

@@ -1,24 +1,24 @@
 import datetime
-import logging
 import re
 
 from django.conf import settings
 from django.template import Context, loader
+from django.utils import translation
 
 from email_reply_parser import EmailReplyParser
 import waffle
 
+import olympia.core.logger
 from olympia import amo
 from olympia.access import acl
-from olympia.activity.models import ActivityLogToken
+from olympia.activity.models import ActivityLog, ActivityLogToken
 from olympia.amo.helpers import absolutify
 from olympia.amo.urlresolvers import reverse
-from olympia.amo.utils import send_mail
-from olympia.devhub.models import ActivityLog
+from olympia.amo.utils import no_translation, send_mail
 from olympia.users.models import UserProfile
 from olympia.users.utils import get_task_user
 
-log = logging.getLogger('z.amo.activity')
+log = olympia.core.logger.getLogger('z.amo.activity')
 
 # Prefix of the reply to address in devcomm emails.
 REPLY_TO_PREFIX = 'reviewreply+'
@@ -72,18 +72,18 @@ class ActivityEmailParser(object):
             return split_email[0]
 
     def get_uuid(self):
-        to_header = self.email.get('To', [])
-        for to in to_header:
-            address = to.get('EmailAddress', '')
+        addresses = [to.get('EmailAddress', '')
+                     for to in self.email.get('To', [])]
+        for address in addresses:
             if address.startswith(self.address_prefix):
                 # Strip everything between "reviewreply+" and the "@" sign.
                 return address[len(self.address_prefix):].split('@')[0]
         log.exception(
             'TO: address missing or not related to activity emails. (%s)'
-            % to_header)
+            % ', '.join(addresses))
         raise ActivityEmailUUIDError(
-            'TO: address doesn\'t contain activity email uuid (%s).'
-            % to_header)
+            'TO: address does not contain activity email uuid (%s).'
+            % ', '.join(addresses))
 
 
 def add_email_to_activity_log_wrapper(message):
@@ -156,10 +156,18 @@ def log_and_notify(action, comments, note_creator, version):
     log_kwargs = {
         'user': note_creator,
         'created': datetime.datetime.now(),
-        'details': {
+    }
+    if comments:
+        log_kwargs['details'] = {
             'comments': comments,
-            'version': version.version}}
-    note = amo.log(action, version.addon, version, **log_kwargs)
+            'version': version.version}
+    else:
+        # Just use the name of the action if no comments provided.  Alas we
+        # can't know the locale of recipient, and our templates are English
+        # only so prevent language jumble by forcing into en-US.
+        with no_translation():
+            comments = '%s' % action.short
+    note = ActivityLog.create(action, version.addon, version, **log_kwargs)
 
     # Collect reviewers involved with this version.
     review_perm = ('Review' if version.channel == amo.RELEASE_CHANNEL_LISTED
@@ -186,7 +194,7 @@ def log_and_notify(action, comments, note_creator, version):
         'number': version.version,
         'author': note_creator.name,
         'comments': comments,
-        'url': version.addon.get_dev_url('versions'),
+        'url': absolutify(version.addon.get_dev_url('versions')),
         'SITE_URL': settings.SITE_URL,
     }
     reviewer_context_dict = author_context_dict.copy()
@@ -194,7 +202,9 @@ def log_and_notify(action, comments, note_creator, version):
         reverse('editors.review', args=[version.addon.pk], add_prefix=False))
 
     # Not being localised because we don't know the recipients locale.
-    subject = 'Mozilla Add-ons: %s Updated' % version.addon.name
+    with translation.override('en-US'):
+        subject = u'Mozilla Add-ons: %s %s %s' % (
+            version.addon.name, version.version, action.short)
     template = loader.get_template('activity/emails/developer.txt')
     send_activity_mail(
         subject, template.render(Context(author_context_dict)), version,

@@ -3,13 +3,9 @@ FROM centos:centos7
 # Allow scripts to detect we're running in our own container
 RUN touch /addons-server-centos7-container
 
-# Set the locale. This is mainly so that tests can write non-ascii files to
-# disk.
-ENV LANG en_US.UTF-8
-ENV LC_ALL en_US.UTF-8
-
 ADD docker/mysql-community.gpg.key /etc/pki/rpm-gpg/RPM-GPG-KEY-mysql
 ADD docker/nodesource.gpg.key /etc/pki/rpm-gpg/RPM-GPG-KEY-nodesource
+ADD docker/git.gpg.key /etc/pki/rpm-gpg/RPM-GPG-KEY-git
 
 # For mysql-python dependencies
 ADD docker/mysql.repo /etc/yum.repos.d/mysql.repo
@@ -17,8 +13,11 @@ ADD docker/mysql.repo /etc/yum.repos.d/mysql.repo
 # This is temporary until https://bugzilla.mozilla.org/show_bug.cgi?id=1226533
 ADD docker/nodesource.repo /etc/yum.repos.d/nodesource.repo
 
-RUN yum update -y \
-    && yum install -y \
+# For git dependencies
+ADD docker/git.repo /etc/yum.repos.d/git.repo
+
+# Upgrade git
+RUN yum install -y \
         # Supervisor is being used to start and keep our services running
         supervisor \
         # General (dev-) dependencies
@@ -45,6 +44,15 @@ RUN yum update -y \
         epel-release \
         swig \
     && yum clean all
+
+# Compile required locale
+RUN localedef -i en_US -f UTF-8 en_US.UTF-8
+
+# Set the locale. This is mainly so that tests can write non-ascii files to
+# disk.
+ENV LANG en_US.UTF-8
+ENV LC_ALL en_US.UTF-8
+
 
 RUN yum install -y python-pip
 

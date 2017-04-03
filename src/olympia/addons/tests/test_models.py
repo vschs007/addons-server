@@ -13,20 +13,19 @@ from django.utils import translation
 
 from mock import Mock, patch
 
-from olympia import amo
+from olympia import amo, core
+from olympia.activity.models import ActivityLog, AddonLog
 from olympia.amo.tests import addon_factory, TestCase, version_factory
-from olympia.amo import set_user
 from olympia.amo.helpers import absolutify, user_media_url
 from olympia.addons.models import (
-    Addon, AddonCategory, AddonDependency, AddonFeatureCompatibility,
-    AddonUser, AppSupport, DeniedGuid, DeniedSlug, Category, Charity,
-    CompatOverride, CompatOverrideRange, FrozenAddon, IncompatibleVersions,
-    Persona, Preview, track_addon_status_change)
+    Addon, AddonApprovalsCounter, AddonCategory, AddonDependency,
+    AddonFeatureCompatibility, AddonUser, AppSupport, DeniedGuid, DeniedSlug,
+    Category, Charity, CompatOverride, CompatOverrideRange, FrozenAddon,
+    IncompatibleVersions, Persona, Preview, track_addon_status_change)
 from olympia.applications.models import AppVersion
 from olympia.bandwagon.models import Collection
 from olympia.constants.categories import CATEGORIES
-from olympia.devhub.models import ActivityLog, AddonLog, RssKey
-from olympia.editors.models import EscalationQueue
+from olympia.devhub.models import RssKey
 from olympia.files.models import File
 from olympia.files.tests.test_models import UploadTest
 from olympia.reviews.models import Review, ReviewFlag
@@ -194,35 +193,27 @@ class TestAddonManager(TestCase):
 
     def setUp(self):
         super(TestAddonManager, self).setUp()
-        set_user(None)
+        core.set_user(None)
         self.addon = Addon.objects.get(pk=3615)
-
-    def change_addon_visibility(self, deleted=False, listed=True):
-        self.addon.update(
-            status=amo.STATUS_DELETED if deleted else amo.STATUS_PUBLIC,
-            is_listed=listed)
 
     def test_managers_public(self):
         assert self.addon in Addon.objects.all()
-        assert self.addon in Addon.with_unlisted.all()
         assert self.addon in Addon.unfiltered.all()
 
     def test_managers_unlisted(self):
-        self.change_addon_visibility(listed=False)
-        assert self.addon not in Addon.objects.all()
-        assert self.addon in Addon.with_unlisted.all()
+        self.make_addon_unlisted(self.addon)
+        assert self.addon in Addon.objects.all()
         assert self.addon in Addon.unfiltered.all()
 
     def test_managers_unlisted_deleted(self):
-        self.change_addon_visibility(deleted=True, listed=False)
+        self.make_addon_unlisted(self.addon)
+        self.addon.update(status=amo.STATUS_DELETED)
         assert self.addon not in Addon.objects.all()
-        assert self.addon not in Addon.with_unlisted.all()
         assert self.addon in Addon.unfiltered.all()
 
     def test_managers_deleted(self):
-        self.change_addon_visibility(deleted=True, listed=True)
+        self.addon.update(status=amo.STATUS_DELETED)
         assert self.addon not in Addon.objects.all()
-        assert self.addon not in Addon.with_unlisted.all()
         assert self.addon in Addon.unfiltered.all()
 
     def test_featured(self):
@@ -260,13 +251,8 @@ class TestAddonManager(TestCase):
         assert q.count() == 3
 
     def test_public(self):
-        public = Addon.objects.public()
-        for a in public:
-            assert a.id != 3  # 'public() must not return unreviewed add-ons'
-
-    def test_reviewed(self):
-        for a in Addon.objects.reviewed():
-            assert a.status in amo.REVIEWED_STATUSES, (a.id, a.status)
+        for a in Addon.objects.public():
+            assert a.status == amo.STATUS_PUBLIC
 
     def test_valid(self):
         addon = Addon.objects.get(pk=5299)
@@ -329,13 +315,12 @@ class TestAddonManager(TestCase):
         collection = self.addon.collections.first()
         assert collection.addons.get() == self.addon
 
-        # Addon shouldn't be listed in collection.addons if it's deleted or
-        # unlisted.
+        # Addon shouldn't be listed in collection.addons if it's deleted.
 
         # Unlisted.
-        self.addon.update(is_listed=False)
+        self.make_addon_unlisted(self.addon)
         collection = Collection.objects.get(pk=collection.pk)
-        assert collection.addons.count() == 0
+        assert collection.addons.get() == self.addon
 
         # Deleted and unlisted.
         self.addon.update(status=amo.STATUS_DELETED)
@@ -343,7 +328,7 @@ class TestAddonManager(TestCase):
         assert collection.addons.count() == 0
 
         # Only deleted.
-        self.addon.update(is_listed=True)
+        self.make_addon_listed(self.addon)
         collection = Collection.objects.get(pk=collection.pk)
         assert collection.addons.count() == 0
 
@@ -355,7 +340,7 @@ class TestAddonManager(TestCase):
         # Deleted or unlisted, version.addon should still work.
 
         # Unlisted.
-        self.addon.update(is_listed=False)
+        self.make_addon_unlisted(self.addon)
         version = Version.objects.get(pk=version.pk)  # Reload from db.
         assert version.addon == self.addon
 
@@ -365,7 +350,7 @@ class TestAddonManager(TestCase):
         assert version.addon == self.addon
 
         # Only deleted.
-        self.addon.update(is_listed=True)
+        self.make_addon_listed(self.addon)
         version = Version.objects.get(pk=version.pk)  # Reload from db.
         assert version.addon == self.addon
 
@@ -447,89 +432,119 @@ class TestAddonModels(TestCase):
         addon = Addon.objects.get(pk=3615)
         addon.current_version.update(created=self.days_ago(2))
         new_version = version_factory(addon=addon, version='2.0')
-        assert addon.find_latest_version() == new_version
+        new_version.update(created=self.days_ago(1))
+        assert addon.find_latest_version(None) == new_version
+        another_new_version = version_factory(
+            addon=addon, version='3.0', channel=amo.RELEASE_CHANNEL_UNLISTED)
+        assert addon.find_latest_version(None) == another_new_version
 
     def test_find_latest_version_different_channel(self):
         addon = Addon.objects.get(pk=3615)
         addon.current_version.update(created=self.days_ago(2))
         new_version = version_factory(addon=addon, version='2.0')
         new_version.update(created=self.days_ago(1))
-        version_factory(
+        unlisted_version = version_factory(
             addon=addon, version='3.0', channel=amo.RELEASE_CHANNEL_UNLISTED)
 
         assert (
             addon.find_latest_version(channel=amo.RELEASE_CHANNEL_LISTED) ==
             new_version)
+        assert (
+            addon.find_latest_version(channel=amo.RELEASE_CHANNEL_UNLISTED) ==
+            unlisted_version)
 
     def test_find_latest_version_no_version(self):
         Addon.objects.filter(pk=3723).update(_current_version=None)
         Version.objects.filter(addon=3723).delete()
         addon = Addon.objects.get(pk=3723)
-        assert addon.find_latest_version() is None
+        assert addon.find_latest_version(None) is None
 
     def test_find_latest_version_ignore_beta(self):
         addon = Addon.objects.get(pk=3615)
 
-        v1 = Version.objects.create(addon=addon, version='1.0')
-        File.objects.create(version=v1)
-        assert addon.find_latest_version().id == v1.id
+        v1 = version_factory(addon=addon, version='1.0')
+        v1.update(created=self.days_ago(1))
+        assert addon.find_latest_version(None).id == v1.id
 
-        v2 = Version.objects.create(addon=addon, version='2.0beta')
-        File.objects.create(version=v2, status=amo.STATUS_BETA)
-        v2.save()
-        assert addon.find_latest_version().id == v1.id  # Still should be v1
+        version_factory(addon=addon, version='2.0beta',
+                        file_kw={'status': amo.STATUS_BETA})
+        # Still should be v1
+        assert addon.find_latest_version(None).id == v1.id
 
     def test_find_latest_version_ignore_disabled(self):
         addon = Addon.objects.get(pk=3615)
 
-        v1 = Version.objects.create(addon=addon, version='1.0')
-        File.objects.create(version=v1)
-        assert addon.find_latest_version().id == v1.id
-
-        v2 = Version.objects.create(addon=addon, version='2.0')
-        File.objects.create(version=v2, status=amo.STATUS_DISABLED)
-        v2.save()
-        assert addon.find_latest_version().id == v1.id  # Still should be v1
-
-    def test_find_latest_or_rejected_version(self):
-        addon = Addon.objects.get(pk=3615)
-
-        v1 = Version.objects.create(addon=addon, version='1.0')
+        v1 = version_factory(addon=addon, version='1.0')
         v1.update(created=self.days_ago(1))
-        File.objects.create(version=v1)
-        assert addon.find_latest_version_including_rejected().id == v1.id
-        v2 = Version.objects.create(addon=addon, version='2.0')
-        f2 = File.objects.create(version=v2)
-        v2.save()
-        assert addon.find_latest_version_including_rejected().id == v2.id
+        assert addon.find_latest_version(None).id == v1.id
 
-        f2.update(status=amo.STATUS_DISABLED)
-        # Should still be 2.0.
-        assert addon.find_latest_version_including_rejected().id == v2.id
+        version_factory(addon=addon, version='2.0',
+                        file_kw={'status': amo.STATUS_DISABLED})
+        # Still should be v1
+        assert addon.find_latest_version(None).id == v1.id
 
-    def test_find_latest_or_rejected_version_channel(self):
+    def test_find_latest_version_only_exclude_beta(self):
         addon = Addon.objects.get(pk=3615)
 
         v1 = version_factory(addon=addon, version='1.0')
         v1.update(created=self.days_ago(2))
-        assert addon.find_latest_version_including_rejected(
-            channel=amo.RELEASE_CHANNEL_LISTED) == v1
 
-        v2 = version_factory(addon=addon, version='2.0')
+        assert addon.find_latest_version(
+            None, exclude=(amo.STATUS_BETA,)).id == v1.id
+
+        v2 = version_factory(addon=addon, version='2.0',
+                             file_kw={'status': amo.STATUS_DISABLED})
         v2.update(created=self.days_ago(1))
-        assert addon.find_latest_version_including_rejected(
-            channel=amo.RELEASE_CHANNEL_LISTED) == v2
 
-        v2.files.update(status=amo.STATUS_DISABLED)
-        # Should still be 2.0.
-        assert addon.find_latest_version_including_rejected(
-            channel=amo.RELEASE_CHANNEL_LISTED) == v2
+        version_factory(addon=addon, version='3.0beta',
+                        file_kw={'status': amo.STATUS_BETA})
+
+        # Should be v2 since we don't exclude disabled, but do exclude beta.
+        assert addon.find_latest_version(
+            None, exclude=(amo.STATUS_BETA,)).id == v2.id
+
+    def test_find_latest_verison_dont_exclude_anything(self):
+        addon = Addon.objects.get(pk=3615)
+
+        v1 = version_factory(addon=addon, version='1.0')
+        v1.update(created=self.days_ago(2))
+
+        assert addon.find_latest_version(None, exclude=()).id == v1.id
+
+        v2 = version_factory(addon=addon, version='2.0',
+                             file_kw={'status': amo.STATUS_DISABLED})
+        v2.update(created=self.days_ago(1))
+
+        v3 = version_factory(addon=addon, version='3.0beta',
+                             file_kw={'status': amo.STATUS_BETA})
+
+        # Should be v3 since we don't exclude anything.
+        assert addon.find_latest_version(None, exclude=()).id == v3.id
+
+    def test_find_latest_verison_dont_exclude_anything_with_channel(self):
+        addon = Addon.objects.get(pk=3615)
+
+        v1 = version_factory(addon=addon, version='1.0')
+        v1.update(created=self.days_ago(3))
+
+        assert addon.find_latest_version(
+            amo.RELEASE_CHANNEL_LISTED, exclude=()).id == v1.id
+
+        v2 = version_factory(addon=addon, version='2.0',
+                             file_kw={'status': amo.STATUS_DISABLED})
+        v2.update(created=self.days_ago(2))
+
+        v3 = version_factory(addon=addon, version='3.0beta',
+                             file_kw={'status': amo.STATUS_BETA})
+        v2.update(created=self.days_ago(1))
 
         version_factory(
-            addon=addon, version='3.0', channel=amo.RELEASE_CHANNEL_UNLISTED)
-        # should still be 2.0 since 3.0 is in a different channel.
-        assert addon.find_latest_version_including_rejected(
-            channel=amo.RELEASE_CHANNEL_LISTED) == v2
+            addon=addon, version='4.0', channel=amo.RELEASE_CHANNEL_UNLISTED)
+
+        # Should be v3 since we don't exclude anything, but do have a channel
+        # set to listed, and version 4.0 is unlisted.
+        assert addon.find_latest_version(
+            amo.RELEASE_CHANNEL_LISTED, exclude=()).id == v3.id
 
     def test_current_version_unsaved(self):
         addon = Addon()
@@ -538,30 +553,11 @@ class TestAddonModels(TestCase):
 
     def test_find_latest_version_unsaved(self):
         addon = Addon()
-        assert addon.find_latest_version() is None
+        assert addon.find_latest_version(None) is None
 
     def test_current_beta_version(self):
         addon = Addon.objects.get(pk=5299)
         assert addon.current_beta_version.id == 50000
-
-    def _create_new_version(self, addon, status):
-        av = addon.current_version.apps.all()[0]
-
-        version = Version.objects.create(addon=addon, version='99')
-        File.objects.create(status=status, version=version)
-
-        ApplicationsVersions.objects.create(
-            application=amo.FIREFOX.id, version=version,
-            min=av.min, max=av.max)
-        return version
-
-    def test_compatible_version(self):
-        addon = Addon.objects.get(pk=3615)
-        assert addon.status == amo.STATUS_PUBLIC
-
-        version = self._create_new_version(
-            addon=addon, status=amo.STATUS_PUBLIC)
-        assert addon.compatible_version(amo.FIREFOX.id) == version
 
     def test_transformer(self):
         addon = Addon.objects.get(pk=3615)
@@ -571,7 +567,7 @@ class TestAddonModels(TestCase):
 
     def _delete(self, addon_id):
         """Test deleting add-ons."""
-        set_user(UserProfile.objects.last())
+        core.set_user(UserProfile.objects.last())
         addon_count = Addon.unfiltered.count()
         addon = Addon.objects.get(pk=addon_id)
         guid = addon.guid
@@ -731,23 +727,13 @@ class TestAddonModels(TestCase):
 
     def test_is_public(self):
         # Public add-on.
-        a = Addon.objects.get(pk=3615)
-        assert a.is_public(), 'public add-on should not be is_pulic()'
-
-        # Public, disabled add-on.
-        a.disabled_by_user = True
-        assert not a.is_public(), (
-            'public, disabled add-on should not be is_public()')
-
-    def test_is_reviewed(self):
-        # Public add-on.
         addon = Addon.objects.get(pk=3615)
         assert addon.status == amo.STATUS_PUBLIC
-        assert addon.is_reviewed()
+        assert addon.is_public()
 
-        # Public, disabled add-on.
+        # Should be public by status, but since it's disabled add-on it's not.
         addon.disabled_by_user = True
-        assert addon.is_reviewed()  # It's still considered "reviewed".
+        assert not addon.is_public()
 
     def test_requires_restart(self):
         addon = Addon.objects.get(pk=3615)
@@ -1237,7 +1223,7 @@ class TestAddonModels(TestCase):
 
     def test_update_logs(self):
         addon = Addon.objects.get(id=3615)
-        set_user(UserProfile.objects.all()[0])
+        core.set_user(UserProfile.objects.all()[0])
         addon.versions.all().delete()
 
         entries = ActivityLog.objects.all()
@@ -1286,7 +1272,7 @@ class TestAddonModels(TestCase):
 
     def test_can_request_review_rejected(self):
         addon = Addon.objects.get(pk=3615)
-        latest_version = addon.find_latest_version()
+        latest_version = addon.find_latest_version(amo.RELEASE_CHANNEL_LISTED)
         latest_version.files.update(status=amo.STATUS_DISABLED)
         assert addon.can_request_review() is False
 
@@ -1353,11 +1339,11 @@ class TestAddonModels(TestCase):
     def test_delete_by(self):
         try:
             user = Addon.objects.get(id=3615).authors.all()[0]
-            set_user(user)
+            core.set_user(user)
             self.delete()
             assert 'DELETED BY: 55021' in mail.outbox[0].body
         finally:
-            set_user(None)
+            core.set_user(None)
 
     def test_delete_by_unknown(self):
         self.delete()
@@ -1456,9 +1442,60 @@ class TestAddonModels(TestCase):
         addon.versions.update(license=None)
         addon.categories.all().delete()
         delete_translation(addon, 'summary')
-        addon = Addon.with_unlisted.get(id=3615)
+        addon = Addon.objects.get(id=3615)
         assert addon.has_complete_metadata()  # Still complete
         assert not addon.has_complete_metadata(has_listed_versions=True)
+
+
+class TestShouldRedirectToSubmitFlow(TestCase):
+    fixtures = ['base/addon_3615']
+
+    def test_no_versions_doesnt_redirect(self):
+        addon = Addon.objects.get(id=3615)
+        assert not addon.should_redirect_to_submit_flow()
+
+        # Now break addon.
+        delete_translation(addon, 'summary')
+        addon = Addon.objects.get(id=3615)
+        assert not addon.has_complete_metadata()
+        addon.update(status=amo.STATUS_NULL)
+        assert addon.should_redirect_to_submit_flow()
+
+        for ver in addon.versions.all():
+            ver.delete()
+        assert not addon.should_redirect_to_submit_flow()
+
+    def test_disabled_versions_doesnt_redirect(self):
+        addon = Addon.objects.get(id=3615)
+        assert not addon.should_redirect_to_submit_flow()
+
+        # Now break addon.
+        delete_translation(addon, 'summary')
+        addon = Addon.objects.get(id=3615)
+        assert not addon.has_complete_metadata()
+        addon.update(status=amo.STATUS_NULL)
+        assert addon.should_redirect_to_submit_flow()
+
+        for ver in addon.versions.all():
+            for file_ in ver.all_files:
+                file_.update(status=amo.STATUS_DISABLED)
+        assert not addon.should_redirect_to_submit_flow()
+
+    def test_only_null_redirects(self):
+        addon = Addon.objects.get(id=3615)
+        assert not addon.should_redirect_to_submit_flow()
+
+        # Now break addon.
+        delete_translation(addon, 'summary')
+        addon = Addon.objects.get(id=3615)
+        assert not addon.has_complete_metadata()
+
+        status_exc_null = dict(amo.STATUS_CHOICES_ADDON)
+        status_exc_null.pop(amo.STATUS_NULL)
+        for status in status_exc_null:
+            assert not addon.should_redirect_to_submit_flow()
+        addon.update(status=amo.STATUS_NULL)
+        assert addon.should_redirect_to_submit_flow()
 
 
 class TestHasListedAndUnlistedVersions(TestCase):
@@ -1600,6 +1637,23 @@ class TestAddonNomination(TestCase):
             addon_status=amo.STATUS_PUBLIC, file_status=amo.STATUS_PUBLIC)
         # Now create a new version with an attached file, and update status.
         self.check_nomination_reset_with_new_version(addon, nomination)
+
+
+class TestThemeDelete(TestCase):
+
+    def setUp(self):
+        super(TestThemeDelete, self).setUp()
+        self.addon = addon_factory(type=amo.ADDON_PERSONA)
+
+        # Taking the creation and modified time back 1 day
+        self.addon.update(created=self.days_ago(1), modified=self.days_ago(1))
+
+    def test_remove_theme_update_m_time(self):
+        m_time_before = self.addon.modified
+        self.addon.delete('enough', 'no reason at all')
+        m_time_after = self.addon.modified
+
+        assert m_time_before != m_time_after
 
 
 class TestAddonDelete(TestCase):
@@ -1786,7 +1840,7 @@ class TestBackupVersion(TestCase):
         super(TestBackupVersion, self).setUp()
         self.version_1_2_0 = 105387
         self.addon = Addon.objects.get(pk=1865)
-        set_user(None)
+        core.set_user(None)
 
     def setup_new_version(self):
         for version in Version.objects.filter(pk__gte=self.version_1_2_0):
@@ -1832,7 +1886,8 @@ class TestBackupVersion(TestCase):
         # Test latest version copied to current version if no current version.
         self.addon.update(_current_version=None, _signal=False)
         assert self.addon.update_version()
-        assert self.addon._current_version == self.addon.find_latest_version()
+        assert self.addon._current_version == (
+            self.addon.find_latest_version(None))
 
 
 class TestCategoryModel(TestCase):
@@ -2088,7 +2143,7 @@ class TestAddonFromUpload(UploadTest):
     def setUp(self):
         super(TestAddonFromUpload, self).setUp()
         u = UserProfile.objects.get(pk=999)
-        set_user(u)
+        core.set_user(u)
         self.platform = amo.PLATFORM_MAC.id
         for version in ('3.0', '3.6.*'):
             AppVersion.objects.create(application=1, version=version)
@@ -2229,19 +2284,6 @@ class TestAddonFromUpload(UploadTest):
                                   [self.platform])
         assert addon.default_locale == 'es'
 
-    def test_is_listed(self):
-        # By default, the addon is listed.
-        addon = Addon.from_upload(self.get_upload('extension.xpi'),
-                                  [self.platform])
-        assert addon.is_listed
-
-    def test_is_not_listed(self):
-        # An addon can be explicitly unlisted.
-        addon = Addon.from_upload(self.get_upload('extension.xpi'),
-                                  [self.platform],
-                                  channel=amo.RELEASE_CHANNEL_UNLISTED)
-        assert not addon.is_listed
-
     def test_validation_completes(self):
         upload = self.get_upload('extension.xpi')
         assert not upload.validation_timeout
@@ -2358,7 +2400,7 @@ class TestAddonFromUpload(UploadTest):
         parse_addon.return_value = {
             'default_locale': u'en',
             'e10s_compatibility': 2,
-            'guid': u'notify-link-clicks-i18n@mozilla.org',
+            'guid': u'notify-link-clicks-i18n@notzilla.org',
             'name': u'__MSG_extensionName__',
             'is_webextension': True,
             'type': 1,
@@ -2383,7 +2425,7 @@ class TestAddonFromUpload(UploadTest):
         parse_addon.return_value = {
             'default_locale': u'xxx',
             'e10s_compatibility': 2,
-            'guid': u'notify-link-clicks-i18n@mozilla.org',
+            'guid': u'notify-link-clicks-i18n@notzilla.org',
             'name': u'__MSG_extensionName__',
             'is_webextension': True,
             'type': 1,
@@ -2615,24 +2657,6 @@ class TestTrackAddonStatusChange(TestCase):
             track_addon_status_change(addon)
         mock_incr.assert_any_call(
             'addon_status_change.all.status_{}'.format(amo.STATUS_PUBLIC)
-        )
-
-    def test_increment_listed_addon_statuses(self):
-        addon = self.create_addon(
-            version_kw={'channel': amo.RELEASE_CHANNEL_LISTED})
-        with patch('olympia.addons.models.statsd.incr') as mock_incr:
-            track_addon_status_change(addon)
-        mock_incr.assert_any_call(
-            'addon_status_change.listed.status_{}'.format(addon.status)
-        )
-
-    def test_increment_unlisted_addon_statuses(self):
-        addon = self.create_addon(
-            version_kw={'channel': amo.RELEASE_CHANNEL_UNLISTED})
-        with patch('olympia.addons.models.statsd.incr') as mock_incr:
-            track_addon_status_change(addon)
-        mock_incr.assert_any_call(
-            'addon_status_change.unlisted.status_{}'.format(addon.status)
         )
 
 
@@ -2962,10 +2986,37 @@ class TestIncompatibleVersions(TestCase):
         assert IncompatibleVersions.objects.count() == 0
 
 
-class TestQueue(TestCase):
+class TestAddonApprovalsCounter(TestCase):
+    def setUp(self):
+        self.addon = addon_factory()
 
-    def test_in_queue(self):
-        addon = Addon.objects.create(guid='f', type=amo.ADDON_EXTENSION)
-        assert not addon.in_escalation_queue()
-        EscalationQueue.objects.create(addon=addon)
-        assert addon.in_escalation_queue()
+    def test_increment_existing(self):
+        assert not AddonApprovalsCounter.objects.filter(
+            addon=self.addon).exists()
+        AddonApprovalsCounter.increment_for_addon(self.addon)
+        approval_counter = AddonApprovalsCounter.objects.get(addon=self.addon)
+        assert approval_counter.counter == 1
+        AddonApprovalsCounter.increment_for_addon(self.addon)
+        approval_counter.reload()
+        assert approval_counter.counter == 2
+
+    def test_increment_non_existing(self):
+        approval_counter = AddonApprovalsCounter.objects.create(
+            addon=self.addon, counter=0)
+        AddonApprovalsCounter.increment_for_addon(self.addon)
+        approval_counter.reload()
+        assert approval_counter.counter == 1
+
+    def test_reset_existing(self):
+        approval_counter = AddonApprovalsCounter.objects.create(
+            addon=self.addon, counter=42)
+        AddonApprovalsCounter.reset_for_addon(self.addon)
+        approval_counter.reload()
+        assert approval_counter.counter == 0
+
+    def test_reset_non_existing(self):
+        assert not AddonApprovalsCounter.objects.filter(
+            addon=self.addon).exists()
+        AddonApprovalsCounter.reset_for_addon(self.addon)
+        approval_counter = AddonApprovalsCounter.objects.get(addon=self.addon)
+        assert approval_counter.counter == 0
