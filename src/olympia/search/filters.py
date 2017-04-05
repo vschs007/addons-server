@@ -1,7 +1,6 @@
 from django.utils import translation
 
 from elasticsearch_dsl import Q, query
-from elasticsearch_dsl.filter import Bool
 from rest_framework import serializers
 from rest_framework.filters import BaseFilterBackend
 
