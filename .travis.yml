@@ -29,17 +29,17 @@ cache:
 
 services:
   - memcached
+  - elasticsearch
 
 addons:
   apt:
+    sources:
+      - elasticsearch-5.0
     packages:
       - swig
       - oracle-java8-set-default
+      - elasticsearch
   firefox: latest
-
-before_install:
-  - scripts/travis_es.sh
-  - JAVA_HOME=/usr/lib/jvm/java-8-oracle /tmp/elasticsearch/elasticsearch-5.1.1/bin/elasticsearch -d -E path.data=/tmp -E index.store.type=mmapfs -v
 
 install:
   - nvm current
@@ -52,7 +52,7 @@ before_script:
   - mysql -e 'create database olympia;'
   - node --version
   - java -version
-  - JAVA_HOME=/usr/lib/jvm/java-8-oracle /tmp/elasticsearch/elasticsearch-5.1.1/bin/elasticsearch --version
+  - curl -v http://localhost:9200/
   - |
       if [[ $TOXENV == "ui-tests" ]]; then
         wget -O /tmp/geckodriver.tar.gz https://github.com/mozilla/geckodriver/releases/download/v0.15.0/geckodriver-v0.15.0-linux64.tar.gz
