@@ -34,11 +34,11 @@ services:
 addons:
   apt:
     sources:
-      - elasticsearch-5.x
+      - elasticsearch-5.1
     packages:
       - swig
       - oracle-java8-set-default
-      - elasticsearch-5.1.2
+      - elasticsearch
   firefox: latest
 
 install:
