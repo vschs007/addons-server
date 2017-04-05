@@ -34,7 +34,7 @@ services:
 addons:
   apt:
     sources:
-      - elasticsearch-5.0
+      - elasticsearch-5.1
     packages:
       - swig
       - oracle-java8-set-default
