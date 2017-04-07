@@ -2,11 +2,10 @@ language: python
 sudo: false
 
 python:
-- 2.7
+  - 2.7
 
 env:
   global:
-    - JAVA_HOME=/usr/lib/jvm/java-8-oracle
     - DISPLAY=:99.0
   matrix:
   - TOXENV=flake8
