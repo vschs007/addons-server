@@ -171,7 +171,7 @@ class AddonTagFilterParam(AddonFilterParam):
     def get_es_filter(self):
         # Just using 'terms' would not work, as it would return any tag match
         # in the list, but we want to exactly match all of them.
-        return [F('term', tags=tag) for tag in self.get_value()]
+        return [query.F('term', tags=tag) for tag in self.get_value()]
 
 
 class SearchQueryFilter(BaseFilterBackend):
