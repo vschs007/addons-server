@@ -46,6 +46,8 @@ install:
   - nvm install 4
   - nvm use 4
   - pip install --upgrade pip wheel setuptools tox==1.8.1
+  - echo 'xpack.security.enabled=false' | sudo tee -a /etc/elasticsearch/elasticsearch.yml
+  - sudo service elasticsearch restart
 
 before_script:
   - ls /etc/elasticsearch/
