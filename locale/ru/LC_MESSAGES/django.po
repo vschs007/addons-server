@@ -9,9 +9,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: REMORA 0.1\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2017-04-03 05:29+0000\n"
-"PO-Revision-Date: 2017-03-29 18:10+0000\n"
-"Last-Translator: Victor Bychek <a@bychek.ru>\n"
+"POT-Creation-Date: 2017-04-12 15:17+0000\n"
+"PO-Revision-Date: 2017-04-08 09:55+0000\n"
+"Last-Translator: Alexander Slovesnik <unghost@mozilla-russia.org>\n"
 "Language-Team: Russian <ru@li.org>\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
@@ -26,7 +26,6 @@ msgid "You are already logged in."
 msgstr "Вы уже вошли."
 
 #: src/olympia/accounts/views.py
-#, fuzzy
 msgid "Your login attempt could not be parsed. Please try again."
 msgstr "Ваша попытка входа не может быть обработана. Пожалуйста, попробуйте снова."
 
@@ -1037,6 +1036,14 @@ msgid "Icon of {0}"
 msgstr "Значок {0}"
 
 #: src/olympia/addons/templates/addons/impala/details.html
+msgid "This add-on is built with new technology that is compatible with Firefox 57 and beyond."
+msgstr ""
+
+#: src/olympia/addons/templates/addons/impala/details.html
+msgid "Compatible with Firefox 57+"
+msgstr ""
+
+#: src/olympia/addons/templates/addons/impala/details.html
 #, python-format
 msgid "Meet the Developer: <a href=\"%(url)s\">%(name)s</a>"
 msgid_plural "<a href=\"%(url)s\">Meet the Developers</a>"
@@ -1719,12 +1726,12 @@ msgid "Invalid Authorization header. Credentials string should not contain space
 msgstr "Некорректный заголовок авторизации. Строка полномочий не должна содержать пробелов."
 
 #: src/olympia/api/authentication.py
-msgid "Error decoding signature."
-msgstr "Ошибка декодирования подписи."
-
-#: src/olympia/api/authentication.py
 msgid "Signature has expired."
 msgstr "Подпись просрочена."
+
+#: src/olympia/api/authentication.py
+msgid "Error decoding signature."
+msgstr "Ошибка декодирования подписи."
 
 #: src/olympia/api/authentication.py
 msgid "Invalid JWT Token."
@@ -5698,10 +5705,12 @@ msgstr "Что нового"
 msgid ""
 "Migrating your legacy add-on to WebExtensions? Get more personalized help during Office Hours, or email <a href=\"mailto:webextensions-support@mozilla.org\">webextensions-support@mozilla.org</a>."
 msgstr ""
+"Переводите свои устаревшие дополнения на WebExtensions? Получите более персональную помощь в рабочее время, или отправьте письмо по электронной почте <a href=\"mailto:webextensions-support@mozilla."
+"org\">webextensions-support@mozilla.org</a>."
 
 #: src/olympia/devhub/templates/devhub/new-landing/components/my-addons.html
 msgid "See Schedule"
-msgstr ""
+msgstr "Смотрите расписание"
 
 #: src/olympia/devhub/templates/devhub/new-landing/components/my-addons.html
 msgid "View All Submissions"
@@ -6387,12 +6396,13 @@ msgid "Are you sure you wish to cancel your review request?"
 msgstr "Вы уверены, что хотите отменить свой запрос на отзыв?"
 
 #: src/olympia/discovery/data.py
-msgid "Take screenshots {start_sub_heading}with {addon_name}{end_sub_heading}"
-msgstr "Создавайте скриншоты {start_sub_heading}с помощью {addon_name}{end_sub_heading}"
+#, fuzzy
+msgid "Download media {start_sub_heading}with {addon_name}{end_sub_heading}"
+msgstr "Загружайте видео {start_sub_heading}с помощью {addon_name}{end_sub_heading}"
 
 #: src/olympia/discovery/data.py
-msgid "More than just screenshots, Awesome Screenshot Plus lets you annotate images with text and graphics. Storing and sharing files is a breeze."
-msgstr "Больше, чем просто скриншоты, Awesome Screenshot Plus позволяет вам добавлять на ваши изображения текст и графику. Сохранение файлов и обмен ими - бальзам на душу."
+msgid "Manage massive audio, video, and image downloads with this lightweight tool."
+msgstr ""
 
 #: src/olympia/discovery/data.py
 msgid "Block ads {start_sub_heading}with {addon_name}{end_sub_heading}"
@@ -6403,12 +6413,12 @@ msgid "A lightweight and effective ad blocker. uBlock Origin enforces thousands 
 msgstr "Лёгкий и эффективный блокировщик рекламы. uBlock Origin применяет тысячи фильтров к контенту без \"съедания\" большого количества памяти."
 
 #: src/olympia/discovery/data.py
-msgid "Download videos {start_sub_heading}with {addon_name}{end_sub_heading}"
-msgstr "Загружайте видео {start_sub_heading}с помощью {addon_name}{end_sub_heading}"
+msgid "Take screenshots {start_sub_heading}with {addon_name}{end_sub_heading}"
+msgstr "Создавайте скриншоты {start_sub_heading}с помощью {addon_name}{end_sub_heading}"
 
 #: src/olympia/discovery/data.py
-msgid "Easily grab videos from YouTube, Dailymotion, Facebook, and most other video sites with this simple download tool."
-msgstr "Легко загружайте видео с YouTube, Dailymotion, Фейсбук и с многих других сайтов с видео с помощью этого простого инструмента."
+msgid "More than just screenshots, Awesome Screenshot Plus lets you annotate images with text and graphics. Storing and sharing files is a breeze."
+msgstr "Больше, чем просто скриншоты, Awesome Screenshot Plus позволяет вам добавлять на ваши изображения текст и графику. Сохранение файлов и обмен ими - бальзам на душу."
 
 #: src/olympia/discovery/data.py
 msgid "Emoji expression {start_sub_heading}with {addon_name}{end_sub_heading}"
@@ -6869,6 +6879,16 @@ msgstr "События за этот период не найдены."
 #: src/olympia/editors/templates/editors/eventlog_detail.html
 msgid "Log details"
 msgstr "Лог подробностей"
+
+#: src/olympia/editors/templates/editors/eventlog_detail.html
+#, fuzzy
+msgid "Review Author"
+msgstr "История проверок"
+
+#: src/olympia/editors/templates/editors/eventlog_detail.html
+#, python-format
+msgid "<dd>%(review_author)s</dd>"
+msgstr ""
 
 #: src/olympia/editors/templates/editors/eventlog_detail.html
 msgid "Add-on Title"

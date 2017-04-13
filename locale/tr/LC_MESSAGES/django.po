@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: REMORA 0.1\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2017-04-03 05:29+0000\n"
-"PO-Revision-Date: 2017-03-14 11:27+0000\n"
+"POT-Creation-Date: 2017-04-12 15:17+0000\n"
+"PO-Revision-Date: 2017-04-09 16:54+0000\n"
 "Last-Translator: Selim Şumlu <selim@sum.lu>\n"
 "Language-Team: Turkish (Türkçe)\n"
 "Language: tr\n"
@@ -1024,6 +1024,14 @@ msgid "Icon of {0}"
 msgstr "{0} simgesi"
 
 #: src/olympia/addons/templates/addons/impala/details.html
+msgid "This add-on is built with new technology that is compatible with Firefox 57 and beyond."
+msgstr ""
+
+#: src/olympia/addons/templates/addons/impala/details.html
+msgid "Compatible with Firefox 57+"
+msgstr ""
+
+#: src/olympia/addons/templates/addons/impala/details.html
 #, python-format
 msgid "Meet the Developer: <a href=\"%(url)s\">%(name)s</a>"
 msgid_plural "<a href=\"%(url)s\">Meet the Developers</a>"
@@ -1506,7 +1514,7 @@ msgstr ""
 
 #: src/olympia/amo/templates/amo/404-responsive.html
 msgid "Suggested Pages"
-msgstr ""
+msgstr "Önerilen Sayfalar"
 
 # 95%
 # 100%
@@ -1712,12 +1720,12 @@ msgid "Invalid Authorization header. Credentials string should not contain space
 msgstr "Geçersiz Yetkilendirme başlığı. Kimlik bilgileri dizesi boşluk içermemelidir."
 
 #: src/olympia/api/authentication.py
-msgid "Error decoding signature."
-msgstr "İmza çözümleme hatası."
-
-#: src/olympia/api/authentication.py
 msgid "Signature has expired."
 msgstr "İmza zaman aşımına uğramış."
+
+#: src/olympia/api/authentication.py
+msgid "Error decoding signature."
+msgstr "İmza çözümleme hatası."
 
 #: src/olympia/api/authentication.py
 msgid "Invalid JWT Token."
@@ -3309,7 +3317,7 @@ msgstr "Güncellenmiş Dil Paketi İncelemesi"
 
 #: src/olympia/constants/base.py
 msgid "Bonus for overdue reviews"
-msgstr ""
+msgstr "Gecikmiş incelemeler için bonus"
 
 #: src/olympia/constants/base.py
 msgid "Days Before Bonus Points Applied"
@@ -4171,7 +4179,7 @@ msgstr "{addon} eklentisinden {0} sürümü silindi."
 #: src/olympia/devhub/views.py
 #, python-format
 msgid "Version %s re-enabled."
-msgstr ""
+msgstr "Sürüm %s yeniden etkinleştirildi."
 
 #: src/olympia/devhub/views.py
 msgid "This upload has failed validation, and may lack complete validation results. Please take due care when reviewing it."
@@ -4551,7 +4559,7 @@ msgstr "Hiçbiri"
 
 #: src/olympia/devhub/templates/devhub/addons/listing/item_actions.html src/olympia/devhub/templates/devhub/addons/owner.html src/olympia/devhub/templates/devhub/includes/addons_edit_nav.html
 msgid "Manage Authors & License"
-msgstr ""
+msgstr "Yazarları ve lisansı yönet"
 
 #: src/olympia/devhub/templates/devhub/addons/owner.html src/olympia/editors/helpers.py src/olympia/editors/templates/editors/review.html
 msgid "Authors"
@@ -5496,7 +5504,7 @@ msgstr "Profilinizin güncel olduğundan emin olun."
 #: src/olympia/devhub/templates/devhub/includes/addons_create_profile.html
 #, python-format
 msgid "<a href=\"%(url)s\"><strong>Update your user profile.</strong></a>"
-msgstr ""
+msgstr "<a href=\"%(url)s\"><strong>Kullanıcı profilinizi güncelleyin.</strong></a>"
 
 #: src/olympia/devhub/templates/devhub/includes/addons_create_profile.html
 msgid "Whether it was an idea while in line at the grocery store or the solution to one of life's great problems, share your story."
@@ -6504,11 +6512,11 @@ msgid "Are you sure you wish to cancel your review request?"
 msgstr ""
 
 #: src/olympia/discovery/data.py
-msgid "Take screenshots {start_sub_heading}with {addon_name}{end_sub_heading}"
+msgid "Download media {start_sub_heading}with {addon_name}{end_sub_heading}"
 msgstr ""
 
 #: src/olympia/discovery/data.py
-msgid "More than just screenshots, Awesome Screenshot Plus lets you annotate images with text and graphics. Storing and sharing files is a breeze."
+msgid "Manage massive audio, video, and image downloads with this lightweight tool."
 msgstr ""
 
 #: src/olympia/discovery/data.py
@@ -6520,11 +6528,11 @@ msgid "A lightweight and effective ad blocker. uBlock Origin enforces thousands 
 msgstr ""
 
 #: src/olympia/discovery/data.py
-msgid "Download videos {start_sub_heading}with {addon_name}{end_sub_heading}"
+msgid "Take screenshots {start_sub_heading}with {addon_name}{end_sub_heading}"
 msgstr ""
 
 #: src/olympia/discovery/data.py
-msgid "Easily grab videos from YouTube, Dailymotion, Facebook, and most other video sites with this simple download tool."
+msgid "More than just screenshots, Awesome Screenshot Plus lets you annotate images with text and graphics. Storing and sharing files is a breeze."
 msgstr ""
 
 #: src/olympia/discovery/data.py
@@ -6730,7 +6738,7 @@ msgstr "İnceleme Bekliyor"
 
 #: src/olympia/editors/helpers.py src/olympia/editors/templates/editors/review.html
 msgid "Flags"
-msgstr ""
+msgstr "Bayraklar"
 
 #: src/olympia/editors/helpers.py
 msgid "moments ago"
@@ -6848,7 +6856,7 @@ msgstr "Başvurularımı Yönet"
 
 #: src/olympia/editors/tasks.py
 msgid "Thanks for submitting your Theme"
-msgstr ""
+msgstr "Temanızı gönderdiğiniz için teşekkürler"
 
 #: src/olympia/editors/tasks.py
 msgid "A problem with your Theme submission"
@@ -7030,6 +7038,16 @@ msgstr ""
 
 #: src/olympia/editors/templates/editors/eventlog_detail.html
 msgid "Log details"
+msgstr "Günlük detayları"
+
+#: src/olympia/editors/templates/editors/eventlog_detail.html
+#, fuzzy
+msgid "Review Author"
+msgstr "İnceleme Geçmişi"
+
+#: src/olympia/editors/templates/editors/eventlog_detail.html
+#, python-format
+msgid "<dd>%(review_author)s</dd>"
 msgstr ""
 
 #: src/olympia/editors/templates/editors/eventlog_detail.html
@@ -7081,7 +7099,7 @@ msgstr[0] "<b>{0}</b> eklenti"
 #: src/olympia/editors/templates/editors/home.html
 #, python-format
 msgid "{0}%%"
-msgstr ""
+msgstr "%%{0}"
 
 #: src/olympia/editors/templates/editors/home.html src/olympia/editors/templates/editors/performance.html src/olympia/editors/templates/editors/themes/home.html
 #, fuzzy
@@ -7927,7 +7945,7 @@ msgstr "Xmarks bir numaralı yer imi eklentisidir."
 
 #: src/olympia/legacy_discovery/modules.py
 msgid "Web page and text translator, dictionary, and more!"
-msgstr ""
+msgstr "Web sayfası ve metin çevirmeni, sözlük ve daha fazlası!"
 
 #: src/olympia/legacy_discovery/modules.py
 msgid "Love is in the Air"
@@ -9607,7 +9625,7 @@ msgstr ""
 
 #: src/olympia/pages/templates/pages/faq.html
 msgid "How do I install, manage, or remove an add-on?"
-msgstr ""
+msgstr "Bir eklentiyi nasıl yükleyebilirim, yönetebilirim veya silebilirim?"
 
 #: src/olympia/pages/templates/pages/faq.html
 #, python-format
@@ -11076,7 +11094,7 @@ msgstr "veya <a id=\"change-owner-cancel\" href=\"#\">Vazgeç</a>"
 #: src/olympia/translations/templates/translations/trans-menu.html
 #, python-format
 msgid "%(title)s <em>&middot; %(lang)s</em>"
-msgstr ""
+msgstr "%(title)s <em>&middot; %(lang)s</em>"
 
 #: src/olympia/translations/templates/translations/trans-menu.html
 msgid "Existing Locales"
@@ -11143,7 +11161,7 @@ msgstr "Tüm diller"
 
 #: src/olympia/users/forms.py
 msgid "This URL has an invalid format. Valid URLs look like http://example.com/my_page."
-msgstr ""
+msgstr "Bu URL geçersiz biçimde. Geçerli URL'ler http://example.com/my_page şeklinde görünür."
 
 #: src/olympia/users/forms.py
 msgid "Usernames cannot contain only digits."

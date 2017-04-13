@@ -3,8 +3,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2017-04-03 05:29+0000\n"
-"PO-Revision-Date: 2017-04-03 17:09+0000\n"
+"POT-Creation-Date: 2017-04-12 15:17+0000\n"
+"PO-Revision-Date: 2017-04-12 17:38+0000\n"
 "Last-Translator: Michael Köhler <michael.koehler1@gmx.de>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "Language: de\n"
@@ -1014,6 +1014,14 @@ msgid "Icon of {0}"
 msgstr "Symbol von {0}"
 
 #: src/olympia/addons/templates/addons/impala/details.html
+msgid "This add-on is built with new technology that is compatible with Firefox 57 and beyond."
+msgstr "Dieses Add-on wurde mit neuer Technologie entwickelt, die mit Firefox 57 und neuer kompatibel ist."
+
+#: src/olympia/addons/templates/addons/impala/details.html
+msgid "Compatible with Firefox 57+"
+msgstr "Kompatibel mit Firefox 57+"
+
+#: src/olympia/addons/templates/addons/impala/details.html
 #, python-format
 msgid "Meet the Developer: <a href=\"%(url)s\">%(name)s</a>"
 msgid_plural "<a href=\"%(url)s\">Meet the Developers</a>"
@@ -1696,12 +1704,12 @@ msgid "Invalid Authorization header. Credentials string should not contain space
 msgstr "Ungültiger Autorisierungs-Header. Daten-String sollte keine Leerzeichen enthalten."
 
 #: src/olympia/api/authentication.py
-msgid "Error decoding signature."
-msgstr "Fehler beim Entschlüsseln der Signatur."
-
-#: src/olympia/api/authentication.py
 msgid "Signature has expired."
 msgstr "Signatur ist abgelaufen."
+
+#: src/olympia/api/authentication.py
+msgid "Error decoding signature."
+msgstr "Fehler beim Entschlüsseln der Signatur."
 
 #: src/olympia/api/authentication.py
 msgid "Invalid JWT Token."
@@ -6319,12 +6327,12 @@ msgid "Are you sure you wish to cancel your review request?"
 msgstr "Möchten Sie Ihre Überprüfungsanfrage wirklich löschen?"
 
 #: src/olympia/discovery/data.py
-msgid "Take screenshots {start_sub_heading}with {addon_name}{end_sub_heading}"
-msgstr "Machen Sie Screenshots {start_sub_heading} mit {addon_name}{end_sub_heading}"
+msgid "Download media {start_sub_heading}with {addon_name}{end_sub_heading}"
+msgstr "Laden Sie Medien herunter {start_sub_heading} mit {addon_name}{end_sub_heading}"
 
 #: src/olympia/discovery/data.py
-msgid "More than just screenshots, Awesome Screenshot Plus lets you annotate images with text and graphics. Storing and sharing files is a breeze."
-msgstr "Mehr als nur Screenshots: Mit Awesome Screenshots Plus können Sie Bilder mit Text und Grafiken versehen. Dateien lassen sich ganz einfach speichern und teilen."
+msgid "Manage massive audio, video, and image downloads with this lightweight tool."
+msgstr "Verwalten Sie mit diesem unkomplizierten Programm größere Mengen an Audio-, Video- und Grafik-Downloads."
 
 #: src/olympia/discovery/data.py
 msgid "Block ads {start_sub_heading}with {addon_name}{end_sub_heading}"
@@ -6335,12 +6343,12 @@ msgid "A lightweight and effective ad blocker. uBlock Origin enforces thousands 
 msgstr "Ein schlanker und effektiver Werbeblocker. uBlock Origin nutzt Tausende von Inhaltsfiltern und geht dabei sparsam mit dem Speicherplatz um."
 
 #: src/olympia/discovery/data.py
-msgid "Download videos {start_sub_heading}with {addon_name}{end_sub_heading}"
-msgstr "Laden Sie Videos herunter {start_sub_heading} mit {addon_name}{end_sub_heading}"
+msgid "Take screenshots {start_sub_heading}with {addon_name}{end_sub_heading}"
+msgstr "Machen Sie Screenshots {start_sub_heading} mit {addon_name}{end_sub_heading}"
 
 #: src/olympia/discovery/data.py
-msgid "Easily grab videos from YouTube, Dailymotion, Facebook, and most other video sites with this simple download tool."
-msgstr "Holen Sie sich mit diesem Werkzeug zum Videodownload einfach Videos von YouTube, Dailymotion, Facebook und den meisten anderen Video-Websites."
+msgid "More than just screenshots, Awesome Screenshot Plus lets you annotate images with text and graphics. Storing and sharing files is a breeze."
+msgstr "Mehr als nur Screenshots: Mit Awesome Screenshots Plus können Sie Bilder mit Text und Grafiken versehen. Dateien lassen sich ganz einfach speichern und teilen."
 
 #: src/olympia/discovery/data.py
 msgid "Emoji expression {start_sub_heading}with {addon_name}{end_sub_heading}"
@@ -6796,6 +6804,15 @@ msgstr "Keine Ereignisse für diesen Zeitraum gefunden."
 #: src/olympia/editors/templates/editors/eventlog_detail.html
 msgid "Log details"
 msgstr "Logbuch-Details"
+
+#: src/olympia/editors/templates/editors/eventlog_detail.html
+msgid "Review Author"
+msgstr "Autor der Bewertung"
+
+#: src/olympia/editors/templates/editors/eventlog_detail.html
+#, python-format
+msgid "<dd>%(review_author)s</dd>"
+msgstr "<dd>%(review_author)s</dd>"
 
 #: src/olympia/editors/templates/editors/eventlog_detail.html
 msgid "Add-on Title"

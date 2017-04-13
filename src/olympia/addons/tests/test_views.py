@@ -980,6 +980,19 @@ class TestDetailPage(TestCase):
         r = self.client.get(self.url)
         assert span_restart not in r.content
 
+    def test_is_webextension(self):
+        is_webextension_span = '<span class="is-webextension"'
+        f = self.addon.current_version.all_files[0]
+
+        assert f.is_webextension is False
+        r = self.client.get(self.url)
+        assert is_webextension_span not in r.content
+
+        f.update(is_webextension=True)
+        assert f.is_webextension is True
+        r = self.client.get(self.url)
+        assert is_webextension_span in r.content
+
     def test_disabled_user_message(self):
         self.addon.update(disabled_by_user=True)
         res = self.client.get(self.url)
@@ -2687,6 +2700,47 @@ class TestAddonSearchView(ESTestCase):
         assert data['count'] == 1
         assert len(data['results']) == 1
         assert data['results'][0]['id'] == addon.pk
+
+    def test_filter_with_tags(self):
+        addon = addon_factory(slug='my-addon', name=u'My Addôn',
+                              tags=['some_tag'], weekly_downloads=999)
+        addon2 = addon_factory(slug='another-addon', name=u'Another Addôn',
+                               tags=['unique_tag', 'some_tag'],
+                               weekly_downloads=333)
+        addon3 = addon_factory(slug='unrelated', name=u'Unrelated',
+                               tags=['unrelated'])
+        self.refresh()
+
+        data = self.perform_search(self.url, {'tag': 'some_tag'})
+        assert data['count'] == 2
+        assert len(data['results']) == 2
+
+        result = data['results'][0]
+        assert result['id'] == addon.pk
+        assert result['slug'] == addon.slug
+        assert result['tags'] == ['some_tag']
+        result = data['results'][1]
+        assert result['id'] == addon2.pk
+        assert result['slug'] == addon2.slug
+        assert result['tags'] == ['some_tag', 'unique_tag']
+
+        data = self.perform_search(self.url, {'tag': 'unrelated'})
+        assert data['count'] == 1
+        assert len(data['results']) == 1
+
+        result = data['results'][0]
+        assert result['id'] == addon3.pk
+        assert result['slug'] == addon3.slug
+        assert result['tags'] == ['unrelated']
+
+        data = self.perform_search(self.url, {'tag': 'unique_tag,some_tag'})
+        assert data['count'] == 1
+        assert len(data['results']) == 1
+
+        result = data['results'][0]
+        assert result['id'] == addon2.pk
+        assert result['slug'] == addon2.slug
+        assert result['tags'] == ['some_tag', 'unique_tag']
 
     def test_bad_filter(self):
         data = self.perform_search(

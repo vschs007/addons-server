@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: REMORA 0.1\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2017-04-03 05:29+0000\n"
-"PO-Revision-Date: 2017-03-17 14:02+0000\n"
+"POT-Creation-Date: 2017-04-12 15:17+0000\n"
+"PO-Revision-Date: 2017-04-07 14:22+0000\n"
 "Last-Translator: Tomáš Zelina <zelitomas@gmail.com>\n"
 "Language-Team: Mozilla.cz <info@mozilla.cz>\n"
 "Language: cs\n"
@@ -25,7 +25,6 @@ msgid "You are already logged in."
 msgstr "Již jste přihlášeni."
 
 #: src/olympia/accounts/views.py
-#, fuzzy
 msgid "Your login attempt could not be parsed. Please try again."
 msgstr "Váš pokus o přihlášení se nepodařilo zpracovat. Zkuste to prosím znovu."
 
@@ -1033,6 +1032,14 @@ msgid "Icon of {0}"
 msgstr "Ikona doplňku {0}"
 
 #: src/olympia/addons/templates/addons/impala/details.html
+msgid "This add-on is built with new technology that is compatible with Firefox 57 and beyond."
+msgstr ""
+
+#: src/olympia/addons/templates/addons/impala/details.html
+msgid "Compatible with Firefox 57+"
+msgstr ""
+
+#: src/olympia/addons/templates/addons/impala/details.html
 #, python-format
 msgid "Meet the Developer: <a href=\"%(url)s\">%(name)s</a>"
 msgid_plural "<a href=\"%(url)s\">Meet the Developers</a>"
@@ -1715,12 +1722,12 @@ msgid "Invalid Authorization header. Credentials string should not contain space
 msgstr "Neplatná autentizační hlavička. Údaje nesmí obsahovat mezery."
 
 #: src/olympia/api/authentication.py
-msgid "Error decoding signature."
-msgstr "Chyba při čtení podpisu."
-
-#: src/olympia/api/authentication.py
 msgid "Signature has expired."
 msgstr "Platnost podpisu vypršela."
+
+#: src/olympia/api/authentication.py
+msgid "Error decoding signature."
+msgstr "Chyba při čtení podpisu."
 
 #: src/olympia/api/authentication.py
 msgid "Invalid JWT Token."
@@ -3918,18 +3925,16 @@ msgid "Version doesn't match"
 msgstr "Verze neodpovídá"
 
 #: src/olympia/devhub/forms.py
-#, fuzzy
 msgid "Version {version} was uploaded before and deleted."
-msgstr "Verze %s již existuje nebo byla dříve nahrána."
+msgstr "Verze {version} už byla dříve nahrána a smazána."
 
 #: src/olympia/devhub/forms.py
-#, fuzzy
 msgid "Version {version} already exists."
-msgstr "Tato verze již existuje."
+msgstr "Verze {version} už existuje."
 
 #: src/olympia/devhub/forms.py
 msgid "Continue with existing upload instead?"
-msgstr ""
+msgstr "Pokračovat místo toho se současným nahráváním?"
 
 #: src/olympia/devhub/forms.py
 msgid "The platform All cannot be combined with specific platforms."
@@ -5655,10 +5660,12 @@ msgstr "Co je nového"
 msgid ""
 "Migrating your legacy add-on to WebExtensions? Get more personalized help during Office Hours, or email <a href=\"mailto:webextensions-support@mozilla.org\">webextensions-support@mozilla.org</a>."
 msgstr ""
+"Převádíte svůj zastaralý doplněk na WebExtension? Získejte osobní pomoc v našich „úředních hodinách“ nebo napište na <a href=\"mailto:webextensions-support@mozilla.org\">webextensions-"
+"support@mozilla.org</a>."
 
 #: src/olympia/devhub/templates/devhub/new-landing/components/my-addons.html
 msgid "See Schedule"
-msgstr ""
+msgstr "Viz Rozvrh"
 
 #: src/olympia/devhub/templates/devhub/new-landing/components/my-addons.html
 msgid "View All Submissions"
@@ -6334,12 +6341,13 @@ msgid "Are you sure you wish to cancel your review request?"
 msgstr "Opravdu chcete zrušit vaši žádost o kontrolu?"
 
 #: src/olympia/discovery/data.py
-msgid "Take screenshots {start_sub_heading}with {addon_name}{end_sub_heading}"
-msgstr "Vytvářejte snímky obrazovky {start_sub_heading}s {addon_name}{end_sub_heading}"
+#, fuzzy
+msgid "Download media {start_sub_heading}with {addon_name}{end_sub_heading}"
+msgstr "Stahujte videa {start_sub_heading}s {addon_name}{end_sub_heading}"
 
 #: src/olympia/discovery/data.py
-msgid "More than just screenshots, Awesome Screenshot Plus lets you annotate images with text and graphics. Storing and sharing files is a breeze."
-msgstr "Více než jen snímky obrazovky - Awesome Screenshot Plus vám dovolí přidávat k obrázkům text a grafiku. Ukládání a sdílení souborů je s jeho pomocí snadné a rychlé."
+msgid "Manage massive audio, video, and image downloads with this lightweight tool."
+msgstr ""
 
 #: src/olympia/discovery/data.py
 msgid "Block ads {start_sub_heading}with {addon_name}{end_sub_heading}"
@@ -6350,12 +6358,12 @@ msgid "A lightweight and effective ad blocker. uBlock Origin enforces thousands 
 msgstr "Rychlý a efektivní blokovač reklam. uBlock Origin vynucuje tisíce filtrů bez toho, aby spolknul příliš velkou část paměti."
 
 #: src/olympia/discovery/data.py
-msgid "Download videos {start_sub_heading}with {addon_name}{end_sub_heading}"
-msgstr "Stahujte videa {start_sub_heading}s {addon_name}{end_sub_heading}"
+msgid "Take screenshots {start_sub_heading}with {addon_name}{end_sub_heading}"
+msgstr "Vytvářejte snímky obrazovky {start_sub_heading}s {addon_name}{end_sub_heading}"
 
 #: src/olympia/discovery/data.py
-msgid "Easily grab videos from YouTube, Dailymotion, Facebook, and most other video sites with this simple download tool."
-msgstr "Stahujte videa ze serverů jako YouTube, Stream, Facebook a mnohých dalších s tímto jednoduchým nástrojem."
+msgid "More than just screenshots, Awesome Screenshot Plus lets you annotate images with text and graphics. Storing and sharing files is a breeze."
+msgstr "Více než jen snímky obrazovky - Awesome Screenshot Plus vám dovolí přidávat k obrázkům text a grafiku. Ukládání a sdílení souborů je s jeho pomocí snadné a rychlé."
 
 #: src/olympia/discovery/data.py
 msgid "Emoji expression {start_sub_heading}with {addon_name}{end_sub_heading}"
@@ -6816,6 +6824,16 @@ msgstr "V této periodě nebyla nalezena žádná událost."
 #: src/olympia/editors/templates/editors/eventlog_detail.html
 msgid "Log details"
 msgstr "Detaily záznamů"
+
+#: src/olympia/editors/templates/editors/eventlog_detail.html
+#, fuzzy
+msgid "Review Author"
+msgstr "Historie kontrol"
+
+#: src/olympia/editors/templates/editors/eventlog_detail.html
+#, python-format
+msgid "<dd>%(review_author)s</dd>"
+msgstr ""
 
 #: src/olympia/editors/templates/editors/eventlog_detail.html
 msgid "Add-on Title"
@@ -7387,9 +7405,8 @@ msgid "Access your data for {name}"
 msgstr "Přistupovat k vašim datům pro {name}"
 
 #: src/olympia/files/models.py
-#, fuzzy
 msgid "Access your data on the following websites:"
-msgstr "Přistupovat k vašim datům pro všechny webové stránky"
+msgstr "Přistupovat k vašim datům pro následující servery:"
 
 #: src/olympia/files/models.py
 msgid "Access your data for all websites"
@@ -7404,9 +7421,9 @@ msgid "Cannot find min/max version. Maybe \"strict_min_version\" or \"strict_max
 msgstr "Nelze nalézt minimální / maximální verzi. Zkontrolujte, zda \"strict_min_version\" nebo \"strict_max_version\" neobsahuje nepodporovanou verzi."
 
 #: src/olympia/files/utils.py
-#, fuzzy, python-format
+#, python-format
 msgid "Could not parse uploaded file, missing or empty <%s> element"
-msgstr "Nepodařilo se zpracovat nahrávaný soubor."
+msgstr "Nepodařilo se zpracovat nahrávaný soubor, element <%s> chybí nebo je prázdný"
 
 #: src/olympia/files/utils.py
 msgid "Could not parse uploaded file."

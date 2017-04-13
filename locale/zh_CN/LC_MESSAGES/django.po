@@ -3,8 +3,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: AMO\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2017-04-03 05:29+0000\n"
-"PO-Revision-Date: 2017-04-03 19:08+0000\n"
+"POT-Creation-Date: 2017-04-12 15:17+0000\n"
+"PO-Revision-Date: 2017-04-12 16:52+0000\n"
 "Last-Translator: YFdyh000 <yfdyh000@gmail.com>\n"
 "Language-Team: Chinese Simplified, China <LL@li.org>\n"
 "Language: zh_CN\n"
@@ -984,6 +984,14 @@ msgid "Icon of {0}"
 msgstr "{0} 的图标"
 
 #: src/olympia/addons/templates/addons/impala/details.html
+msgid "This add-on is built with new technology that is compatible with Firefox 57 and beyond."
+msgstr "此扩展采用了兼容 Firefox 57 及未来版本的新技术。"
+
+#: src/olympia/addons/templates/addons/impala/details.html
+msgid "Compatible with Firefox 57+"
+msgstr "兼容 Firefox 57+"
+
+#: src/olympia/addons/templates/addons/impala/details.html
 #, python-format
 msgid "Meet the Developer: <a href=\"%(url)s\">%(name)s</a>"
 msgid_plural "<a href=\"%(url)s\">Meet the Developers</a>"
@@ -1645,12 +1653,12 @@ msgid "Invalid Authorization header. Credentials string should not contain space
 msgstr "无效的 Authorization 头。凭据字符串不应该包含空格。"
 
 #: src/olympia/api/authentication.py
-msgid "Error decoding signature."
-msgstr "解码签名出错。"
-
-#: src/olympia/api/authentication.py
 msgid "Signature has expired."
 msgstr "签名已过期。"
+
+#: src/olympia/api/authentication.py
+msgid "Error decoding signature."
+msgstr "解码签名出错。"
 
 #: src/olympia/api/authentication.py
 msgid "Invalid JWT Token."
@@ -6163,12 +6171,12 @@ msgid "Are you sure you wish to cancel your review request?"
 msgstr "您确定要撤销您的审核请求吗？"
 
 #: src/olympia/discovery/data.py
-msgid "Take screenshots {start_sub_heading}with {addon_name}{end_sub_heading}"
-msgstr "截取图片 {start_sub_heading}就用 {addon_name}{end_sub_heading}"
+msgid "Download media {start_sub_heading}with {addon_name}{end_sub_heading}"
+msgstr "下载音视频 {start_sub_heading}就用 {addon_name}{end_sub_heading}"
 
 #: src/olympia/discovery/data.py
-msgid "More than just screenshots, Awesome Screenshot Plus lets you annotate images with text and graphics. Storing and sharing files is a breeze."
-msgstr "Awesome Screenshot Plus 不仅仅是截图，还能用文本和图形注解图像。存储和共享文件也很轻松。"
+msgid "Manage massive audio, video, and image downloads with this lightweight tool."
+msgstr "使用这个轻量级工具管理大量音频、视频和图像的下载。"
 
 #: src/olympia/discovery/data.py
 msgid "Block ads {start_sub_heading}with {addon_name}{end_sub_heading}"
@@ -6179,12 +6187,12 @@ msgid "A lightweight and effective ad blocker. uBlock Origin enforces thousands 
 msgstr "一个轻量级、有效率的广告拦截器。uBlock Origin 可施行大量的内容过滤器，而不占用很多内存。"
 
 #: src/olympia/discovery/data.py
-msgid "Download videos {start_sub_heading}with {addon_name}{end_sub_heading}"
-msgstr "下载视频 {start_sub_heading}就用 {addon_name}{end_sub_heading}"
+msgid "Take screenshots {start_sub_heading}with {addon_name}{end_sub_heading}"
+msgstr "截取图片 {start_sub_heading}就用 {addon_name}{end_sub_heading}"
 
 #: src/olympia/discovery/data.py
-msgid "Easily grab videos from YouTube, Dailymotion, Facebook, and most other video sites with this simple download tool."
-msgstr "使用这个简单的下载工具，轻松抓取 YouTube、Dailymotion、Facebook 及许多视频网站的视频。"
+msgid "More than just screenshots, Awesome Screenshot Plus lets you annotate images with text and graphics. Storing and sharing files is a breeze."
+msgstr "Awesome Screenshot Plus 不仅仅是截图，还能用文本和图形注解图像。存储和共享文件也很轻松。"
 
 #: src/olympia/discovery/data.py
 msgid "Emoji expression {start_sub_heading}with {addon_name}{end_sub_heading}"
@@ -6631,6 +6639,15 @@ msgstr "在此时间段内没有事件。"
 #: src/olympia/editors/templates/editors/eventlog_detail.html
 msgid "Log details"
 msgstr "日志详细信息"
+
+#: src/olympia/editors/templates/editors/eventlog_detail.html
+msgid "Review Author"
+msgstr "审核用户"
+
+#: src/olympia/editors/templates/editors/eventlog_detail.html
+#, python-format
+msgid "<dd>%(review_author)s</dd>"
+msgstr "<dd>%(review_author)s</dd>"
 
 #: src/olympia/editors/templates/editors/eventlog_detail.html
 msgid "Add-on Title"

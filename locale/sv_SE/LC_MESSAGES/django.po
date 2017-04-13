@@ -3,8 +3,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: REMORA 0.1\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2017-04-03 05:29+0000\n"
-"PO-Revision-Date: 2017-04-03 15:25+0000\n"
+"POT-Creation-Date: 2017-04-12 15:17+0000\n"
+"PO-Revision-Date: 2017-04-12 22:09+0000\n"
 "Last-Translator: Andreas Pettersson <az@kth.se>\n"
 "Language-Team: The Swedish l10n-team <community-sweden@lists.mozilla.org>\n"
 "Language: sv_SE\n"
@@ -1001,6 +1001,14 @@ msgid "Icon of {0}"
 msgstr "Ikon för {0}"
 
 #: src/olympia/addons/templates/addons/impala/details.html
+msgid "This add-on is built with new technology that is compatible with Firefox 57 and beyond."
+msgstr "Detta tillägg är byggt med ny teknik som är kompatibel med Firefox 57 och bortom."
+
+#: src/olympia/addons/templates/addons/impala/details.html
+msgid "Compatible with Firefox 57+"
+msgstr "Kompatibel med Firefox 57+"
+
+#: src/olympia/addons/templates/addons/impala/details.html
 #, python-format
 msgid "Meet the Developer: <a href=\"%(url)s\">%(name)s</a>"
 msgid_plural "<a href=\"%(url)s\">Meet the Developers</a>"
@@ -1672,12 +1680,12 @@ msgid "Invalid Authorization header. Credentials string should not contain space
 msgstr "Ogiltigt auktoriseringshuvud. Autentiseringsuppgifter ska inte innehålla mellanslag."
 
 #: src/olympia/api/authentication.py
-msgid "Error decoding signature."
-msgstr "Fel vid avkodning av signaturen."
-
-#: src/olympia/api/authentication.py
 msgid "Signature has expired."
 msgstr "Signaturen har upphört."
+
+#: src/olympia/api/authentication.py
+msgid "Error decoding signature."
+msgstr "Fel vid avkodning av signaturen."
 
 #: src/olympia/api/authentication.py
 msgid "Invalid JWT Token."
@@ -6314,12 +6322,12 @@ msgid "Are you sure you wish to cancel your review request?"
 msgstr "Är du säker på att du vill avbryta din begäran om granskning?"
 
 #: src/olympia/discovery/data.py
-msgid "Take screenshots {start_sub_heading}with {addon_name}{end_sub_heading}"
-msgstr "Ta skärmdumpar {start_sub_heading}med {addon_name}{end_sub_heading}"
+msgid "Download media {start_sub_heading}with {addon_name}{end_sub_heading}"
+msgstr "Ladda ner media {start_sub_heading}med {addon_name}{end_sub_heading}"
 
 #: src/olympia/discovery/data.py
-msgid "More than just screenshots, Awesome Screenshot Plus lets you annotate images with text and graphics. Storing and sharing files is a breeze."
-msgstr "Mer än bara skärmdumpar, med fantastiska Screenshot Plus kan du kommentera bilder med text och grafik. Lagring och delning av filer är enkelt."
+msgid "Manage massive audio, video, and image downloads with this lightweight tool."
+msgstr "Hantera stora mängder ljud, video och grafiknedladdningar med detta enkla verktyg."
 
 #: src/olympia/discovery/data.py
 msgid "Block ads {start_sub_heading}with {addon_name}{end_sub_heading}"
@@ -6330,12 +6338,12 @@ msgid "A lightweight and effective ad blocker. uBlock Origin enforces thousands 
 msgstr "En lätt och effektiv annonsblockerare. uBlock Origin använder tusentals filter utan att använda en massa minne."
 
 #: src/olympia/discovery/data.py
-msgid "Download videos {start_sub_heading}with {addon_name}{end_sub_heading}"
-msgstr "Ladda ner videor {start_sub_heading}med {addon_name}{end_sub_heading}"
+msgid "Take screenshots {start_sub_heading}with {addon_name}{end_sub_heading}"
+msgstr "Ta skärmdumpar {start_sub_heading}med {addon_name}{end_sub_heading}"
 
 #: src/olympia/discovery/data.py
-msgid "Easily grab videos from YouTube, Dailymotion, Facebook, and most other video sites with this simple download tool."
-msgstr "Hämta enkelt videoklipp från YouTube, Dailymotion, Facebook och de flesta andra videosajter med detta enkla nedladdningsverktyg."
+msgid "More than just screenshots, Awesome Screenshot Plus lets you annotate images with text and graphics. Storing and sharing files is a breeze."
+msgstr "Mer än bara skärmdumpar, med fantastiska Screenshot Plus kan du kommentera bilder med text och grafik. Lagring och delning av filer är enkelt."
 
 #: src/olympia/discovery/data.py
 msgid "Emoji expression {start_sub_heading}with {addon_name}{end_sub_heading}"
@@ -6789,6 +6797,15 @@ msgstr "Inga händelser hittades för denna period."
 #: src/olympia/editors/templates/editors/eventlog_detail.html
 msgid "Log details"
 msgstr "Loggdetaljer"
+
+#: src/olympia/editors/templates/editors/eventlog_detail.html
+msgid "Review Author"
+msgstr "Granskare"
+
+#: src/olympia/editors/templates/editors/eventlog_detail.html
+#, python-format
+msgid "<dd>%(review_author)s</dd>"
+msgstr "<dd>%(review_author)s</dd>"
 
 #: src/olympia/editors/templates/editors/eventlog_detail.html
 msgid "Add-on Title"

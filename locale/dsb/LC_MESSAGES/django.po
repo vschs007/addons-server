@@ -4,8 +4,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT 1.0\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2017-04-03 05:29+0000\n"
-"PO-Revision-Date: 2017-04-03 08:59+0000\n"
+"POT-Creation-Date: 2017-04-12 15:17+0000\n"
+"PO-Revision-Date: 2017-04-12 17:56+0000\n"
 "Last-Translator: Michael Wolf <milupo@sorbzilla.de>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "Language: dsb\n"
@@ -1029,6 +1029,14 @@ msgid "Icon of {0}"
 msgstr "Symbol za {0}"
 
 #: src/olympia/addons/templates/addons/impala/details.html
+msgid "This add-on is built with new technology that is compatible with Firefox 57 and beyond."
+msgstr "Toś ten dodank jo se z noweju technologiju wuwił, kótaraž jo kompatibelna z Firefox 57 a nowšym."
+
+#: src/olympia/addons/templates/addons/impala/details.html
+msgid "Compatible with Firefox 57+"
+msgstr "Kompatibelny z Firefox 57+"
+
+#: src/olympia/addons/templates/addons/impala/details.html
 #, python-format
 msgid "Meet the Developer: <a href=\"%(url)s\">%(name)s</a>"
 msgid_plural "<a href=\"%(url)s\">Meet the Developers</a>"
@@ -1711,12 +1719,12 @@ msgid "Invalid Authorization header. Credentials string should not contain space
 msgstr "Njepłaśiwa awtorizěrowańska głowa. Znamuškowy rjeśazk za pśizjawjeńske daty njesmějo žedne prozne znamjenja wopśimowaś."
 
 #: src/olympia/api/authentication.py
-msgid "Error decoding signature."
-msgstr "Zmólka pśi dekoděrowanju signatury."
-
-#: src/olympia/api/authentication.py
 msgid "Signature has expired."
 msgstr "Signatura jo pśepadnyła."
+
+#: src/olympia/api/authentication.py
+msgid "Error decoding signature."
+msgstr "Zmólka pśi dekoděrowanju signatury."
 
 #: src/olympia/api/authentication.py
 msgid "Invalid JWT Token."
@@ -6341,12 +6349,12 @@ msgid "Are you sure you wish to cancel your review request?"
 msgstr "Cośo swójo pśeglědowańske napšašowanje napšawdu anulěrowaś?"
 
 #: src/olympia/discovery/data.py
-msgid "Take screenshots {start_sub_heading}with {addon_name}{end_sub_heading}"
-msgstr "Gótujśo fota wobrazowki {start_sub_heading}z {addon_name}{end_sub_heading}"
+msgid "Download media {start_sub_heading}with {addon_name}{end_sub_heading}"
+msgstr "Ześěgniśo medije {start_sub_heading}z {addon_name}{end_sub_heading}"
 
 #: src/olympia/discovery/data.py
-msgid "More than just screenshots, Awesome Screenshot Plus lets you annotate images with text and graphics. Storing and sharing files is a breeze."
-msgstr "Wěcej ako janož fota wobrazowki: Z Awesome Screenshot Plus móžośo wobrazam tekst a grafiki přidać. Dataje daju se cele jadnorje składowaś a źěliś."
+msgid "Manage massive audio, video, and image downloads with this lightweight tool."
+msgstr "Zastojśo z toś tym jadnorym programom wjeliku licbu ześěgnjenjow awdio- a wideodatajow ako teke wobrazowych datajow."
 
 #: src/olympia/discovery/data.py
 msgid "Block ads {start_sub_heading}with {addon_name}{end_sub_heading}"
@@ -6357,12 +6365,12 @@ msgid "A lightweight and effective ad blocker. uBlock Origin enforces thousands 
 msgstr "Lažhki a efektiwny blokěrowak wabjenja. uBlock Origin wunuźijo towzynty wopśimjeśowych filtrow, mimo až by se wjele składa pśetrjebało."
 
 #: src/olympia/discovery/data.py
-msgid "Download videos {start_sub_heading}with {addon_name}{end_sub_heading}"
-msgstr "Ześěgniśo wideo {start_sub_heading}z {addon_name}{end_sub_heading}"
+msgid "Take screenshots {start_sub_heading}with {addon_name}{end_sub_heading}"
+msgstr "Gótujśo fota wobrazowki {start_sub_heading}z {addon_name}{end_sub_heading}"
 
 #: src/olympia/discovery/data.py
-msgid "Easily grab videos from YouTube, Dailymotion, Facebook, and most other video sites with this simple download tool."
-msgstr "Wobstarajśo se wideo z YouTube, Dailymotion, Facebook a nejwěcej wideowych sedłow z toś tym jadnorym rědom."
+msgid "More than just screenshots, Awesome Screenshot Plus lets you annotate images with text and graphics. Storing and sharing files is a breeze."
+msgstr "Wěcej ako janož fota wobrazowki: Z Awesome Screenshot Plus móžośo wobrazam tekst a grafiki přidać. Dataje daju se cele jadnorje składowaś a źěliś."
 
 #: src/olympia/discovery/data.py
 msgid "Emoji expression {start_sub_heading}with {addon_name}{end_sub_heading}"
@@ -6830,6 +6838,15 @@ msgstr "Za toś ten cas njejsu se tšojenja namakali."
 #: src/olympia/editors/templates/editors/eventlog_detail.html
 msgid "Log details"
 msgstr "Protokolowe drobnostki"
+
+#: src/olympia/editors/templates/editors/eventlog_detail.html
+msgid "Review Author"
+msgstr "Awtor pógódnośenja"
+
+#: src/olympia/editors/templates/editors/eventlog_detail.html
+#, python-format
+msgid "<dd>%(review_author)s</dd>"
+msgstr "<dd>%(review_author)s</dd>"
 
 #: src/olympia/editors/templates/editors/eventlog_detail.html
 msgid "Add-on Title"

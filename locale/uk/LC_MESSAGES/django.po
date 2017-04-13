@@ -10,9 +10,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2017-04-03 05:29+0000\n"
-"PO-Revision-Date: 2017-04-03 14:45+0000\n"
-"Last-Translator: Tymur Faradzhev <faradzhev.timur@gmail.com>\n"
+"POT-Creation-Date: 2017-04-12 15:17+0000\n"
+"PO-Revision-Date: 2017-04-13 05:24+0000\n"
+"Last-Translator: Artem Polivanchuk <a.polivanchuk@outlook.com>\n"
 "Language-Team: \n"
 "Language: uk\n"
 "MIME-Version: 1.0\n"
@@ -1025,6 +1025,14 @@ msgid "Icon of {0}"
 msgstr "Піктограма {0}"
 
 #: src/olympia/addons/templates/addons/impala/details.html
+msgid "This add-on is built with new technology that is compatible with Firefox 57 and beyond."
+msgstr "Цей додаток створений за допомогою нової технології, сумісної з Firefox починаючи з версії 57."
+
+#: src/olympia/addons/templates/addons/impala/details.html
+msgid "Compatible with Firefox 57+"
+msgstr "Сумісно починаючи з Firefox 57"
+
+#: src/olympia/addons/templates/addons/impala/details.html
 #, python-format
 msgid "Meet the Developer: <a href=\"%(url)s\">%(name)s</a>"
 msgid_plural "<a href=\"%(url)s\">Meet the Developers</a>"
@@ -1706,12 +1714,12 @@ msgid "Invalid Authorization header. Credentials string should not contain space
 msgstr "Неприпустимий заголовок авторизації. Строчка повноважень не повинна містити пропусків."
 
 #: src/olympia/api/authentication.py
-msgid "Error decoding signature."
-msgstr "Помилка декодування підпису."
-
-#: src/olympia/api/authentication.py
 msgid "Signature has expired."
 msgstr "Підпис прострочений."
+
+#: src/olympia/api/authentication.py
+msgid "Error decoding signature."
+msgstr "Помилка декодування підпису."
 
 #: src/olympia/api/authentication.py
 msgid "Invalid JWT Token."
@@ -6332,12 +6340,12 @@ msgid "Are you sure you wish to cancel your review request?"
 msgstr "Ви впевнені, що хочете скасувати свій запит на відгук?"
 
 #: src/olympia/discovery/data.py
-msgid "Take screenshots {start_sub_heading}with {addon_name}{end_sub_heading}"
-msgstr "Робіть знімки екрану {start_sub_heading}за допомогою {addon_name}{end_sub_heading}"
+msgid "Download media {start_sub_heading}with {addon_name}{end_sub_heading}"
+msgstr "Завантажуйте медіа {start_sub_heading}за допомогою {addon_name}{end_sub_heading}"
 
 #: src/olympia/discovery/data.py
-msgid "More than just screenshots, Awesome Screenshot Plus lets you annotate images with text and graphics. Storing and sharing files is a breeze."
-msgstr "Більше, ніж просто знімки екрану, Awesome Screenshot Plus дозволяє анотувати зображення текстом та графікою. Збереження файлів і обмін ними - бальзам на душу."
+msgid "Manage massive audio, video, and image downloads with this lightweight tool."
+msgstr "Керуйте завантаженнями аудіо, відео та зображень за допомогою цього легкого інструменту."
 
 #: src/olympia/discovery/data.py
 msgid "Block ads {start_sub_heading}with {addon_name}{end_sub_heading}"
@@ -6348,12 +6356,12 @@ msgid "A lightweight and effective ad blocker. uBlock Origin enforces thousands 
 msgstr "Легкий та ефективний додаток для блокування реклами. uBlock Origin забезпечує тисячами фільтрів вмісту без впливу на споживання пам'яті."
 
 #: src/olympia/discovery/data.py
-msgid "Download videos {start_sub_heading}with {addon_name}{end_sub_heading}"
-msgstr "Завантажуйте відео {start_sub_heading}з {addon_name}{end_sub_heading}"
+msgid "Take screenshots {start_sub_heading}with {addon_name}{end_sub_heading}"
+msgstr "Робіть знімки екрану {start_sub_heading}за допомогою {addon_name}{end_sub_heading}"
 
 #: src/olympia/discovery/data.py
-msgid "Easily grab videos from YouTube, Dailymotion, Facebook, and most other video sites with this simple download tool."
-msgstr "Легко завантажуйте відео з YouTube, Dailymotion, Facebook, а також багатьох інших відео сайтів за допомогою цього простого засобу."
+msgid "More than just screenshots, Awesome Screenshot Plus lets you annotate images with text and graphics. Storing and sharing files is a breeze."
+msgstr "Більше, ніж просто знімки екрану, Awesome Screenshot Plus дозволяє анотувати зображення текстом та графікою. Збереження файлів і обмін ними - бальзам на душу."
 
 #: src/olympia/discovery/data.py
 msgid "Emoji expression {start_sub_heading}with {addon_name}{end_sub_heading}"
@@ -6814,6 +6822,15 @@ msgstr "Для цього періоду подій не знайдено."
 #: src/olympia/editors/templates/editors/eventlog_detail.html
 msgid "Log details"
 msgstr "Подробиці журналу"
+
+#: src/olympia/editors/templates/editors/eventlog_detail.html
+msgid "Review Author"
+msgstr "Автор відгуку"
+
+#: src/olympia/editors/templates/editors/eventlog_detail.html
+#, python-format
+msgid "<dd>%(review_author)s</dd>"
+msgstr "<dd>%(review_author)s</dd>"
 
 #: src/olympia/editors/templates/editors/eventlog_detail.html
 msgid "Add-on Title"

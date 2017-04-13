@@ -7,11 +7,11 @@
     "npm": ">= 1.1.x"
   },
   "dependencies": {
-    "addons-linter": "0.17.0",
+    "addons-linter": "0.18.1",
     "clean-css": "4.0.11",
-    "clean-css-cli": "4.0.10",
+    "clean-css-cli": "4.0.12",
     "less": "2.7.2",
     "stylus": "0.54.5",
-    "uglify-js": "2.8.19"
+    "uglify-js": "2.8.22"
   }
 }
