@@ -23,7 +23,7 @@ def get_es(hosts=None, timeout=None, **settings):
                getattr(dj_settings, 'ES_TIMEOUT', DEFAULT_TIMEOUT))
 
     if os.environ.get('RUNNING_IN_CI'):
-        settings['http_auth'] =  ('elastic', 'changeme')
+        settings['http_auth'] = ('elastic', 'changeme')
 
     return Elasticsearch(hosts, timeout=timeout, **settings)
 
@@ -152,10 +152,11 @@ class ES(object):
 
         if filters:
             if len(filters) > 1:
-                filters = {"and": filters}
+                filters = [filters]
+
             qs = {
-                "filtered": {
-                    "query": qs,
+                "bool": {
+                    "must": qs,
                     "filter": filters
                 }
             }
@@ -171,7 +172,7 @@ class ES(object):
             body['aggs'] = aggregations
 
         if fields:
-            body['fields'] = fields
+            body['stored_fields'] = fields
         # As per version 1.0, ES has deprecated loading fields not stored from
         # '_source', plus non leaf fields are not allowed in fields.
         if source:
@@ -305,7 +306,7 @@ class DictSearchResults(SearchResults):
             # Elasticsearch >= 1.0 style.
             for h in hits:
                 hit = {}
-                fields = h['fields']
+                fields = h['stored_fields']
                 # If source is returned, it means that it has been asked, so
                 # take it.
                 if '_source' in h:
@@ -325,14 +326,15 @@ class DictSearchResults(SearchResults):
 class ListSearchResults(SearchResults):
 
     def set_objects(self, hits):
-        key = 'fields' if self.fields else '_source'
+        key = 'stored_fields' if self.fields else '_source'
 
         # When fields are specified in `values(...)` we return the fields. Each
         # field is coerced to a list to match the Elasticsearch >= 1.0 style.
         objs = []
         for hit in hits:
-            objs.append(tuple([v] if key == 'fields' and type(v) != list else v
-                              for v in hit[key].values()))
+            objs.append(tuple(
+                [v] if key == 'stored_fields' and type(v) != list else v
+                for v in hit[key].values()))
 
         self.objects = objs
 
