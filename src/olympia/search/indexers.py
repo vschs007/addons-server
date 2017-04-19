@@ -23,7 +23,7 @@ indexers = (AddonIndexer, AppCompatIndexer, CollectionIndexer,
 # re https://github.com/mozilla/addons-server/issues/2661
 # funny enough, the elasticsearch mention that `dictionary_decompounder` is to
 # "decompose compound words found in many German languages"
-# and all the words in the list are English… (cgrebs 042017)
+# and all the words in the list are English... (cgrebs 042017)
 INDEX_SETTINGS = {
     'analysis': {
         'analyzer': {
