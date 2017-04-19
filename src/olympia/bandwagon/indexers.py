@@ -27,7 +27,8 @@ class CollectionIndexer(BaseSearchIndexer):
                     'name_sort': {'type': 'keyword'},
                     # Adding word-delimiter to split on camelcase and
                     # punctuation.
-                    'name': {'type': 'text'},
+                    'name': {'type': 'text',
+                             'analyzer': 'standardPlusWordDelimiter'},
                     'type': {'type': 'byte'},
                     'slug': {'type': 'text'},
 
