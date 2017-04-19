@@ -591,8 +591,13 @@ class ReviewBase(object):
         if any(file_.is_webextension for file_ in self.files):
             Tag(tag_text='firefox57').save_tag(self.addon)
 
-        # Increment approvals counter.
-        AddonApprovalsCounter.increment_for_addon(addon=self.addon)
+        # Increment approvals counter if we have a request (it means it's a
+        # human doing the review) otherwise reset it as it's an automatic
+        # approval.
+        if self.request:
+            AddonApprovalsCounter.increment_for_addon(addon=self.addon)
+        else:
+            AddonApprovalsCounter.reset_for_addon(addon=self.addon)
 
         self.log_action(amo.LOG.APPROVE_VERSION)
         template = u'%s_to_public' % self.review_type
@@ -604,7 +609,8 @@ class ReviewBase(object):
 
         # Assign reviewer incentive scores.
         if self.request:
-            ReviewerScore.award_points(self.request.user, self.addon, status)
+            ReviewerScore.award_points(
+                self.request.user, self.addon, status, version=self.version)
 
     def process_sandbox(self):
         """Set an addon or a version back to sandbox."""
@@ -630,7 +636,8 @@ class ReviewBase(object):
 
         # Assign reviewer incentive scores.
         if self.request:
-            ReviewerScore.award_points(self.request.user, self.addon, status)
+            ReviewerScore.award_points(
+                self.request.user, self.addon, status, version=self.version)
 
     def process_super_review(self):
         """Give an addon super review."""
