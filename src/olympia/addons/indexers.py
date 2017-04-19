@@ -92,8 +92,7 @@ class AddonIndexer(BaseSearchIndexer):
                     'modified': {'type': 'date', 'index': False},
                     # Adding word-delimiter to split on camelcase and
                     # punctuation.
-                    'name': {'type': 'text',
-                             'analyzer': 'standardPlusWordDelimiter'},
+                    'name': {'type': 'text'},
                     # Turn off analysis on name so we can sort by it.
                     'name_sort': {'type': 'keyword'},
                     'persona': {
