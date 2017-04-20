@@ -388,7 +388,7 @@ class TestCombinedFilter(FilterTestsBase):
 
         assert qs['sort'] == [{'_score': {'order': 'desc'}}]
 
-        should = filtered['must'][2]['function_score']['query']['bool']['should']
+        should = must[2]['function_score']['query']['bool']['should']
         expected = {
             'match': {
                 'name_english': {
