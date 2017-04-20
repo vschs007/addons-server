@@ -888,7 +888,6 @@ class ESTestCase(TestCase):
         search_indexers.create_new_index(index_name=actual_indices['default'])
         stats_search.create_new_index(index_name=actual_indices['stats'])
 
-
         # Alias it to the name the code is going to use (which is suffixed by
         # pytest to avoid clashing with the real thing).
         actions = [
