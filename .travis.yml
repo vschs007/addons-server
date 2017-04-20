@@ -24,7 +24,6 @@ cache:
   pip: true
   directories:
     - node_modules
-    - .tox
 
 services:
   - memcached
