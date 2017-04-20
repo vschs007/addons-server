@@ -36,7 +36,7 @@ addons:
     packages:
       - swig
       - oracle-java8-set-default
-      - elasticsearch-5.1
+      - elasticsearch
   firefox: latest
 
 install:
