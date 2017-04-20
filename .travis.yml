@@ -47,8 +47,6 @@ install:
   - pip install --upgrade pip wheel setuptools tox==1.8.1
 
 before_script:
-  - ls /etc/elasticsearch/
-  - cat /etc/elasticsearch/elasticsearch.yml
   - mysql -e 'create database olympia;'
   - node --version
   - java -version
