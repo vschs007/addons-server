@@ -295,7 +295,7 @@ def _build_suggestions(request, cat, suggester):
 def name_only_query(q):
     d = {}
 
-    rules = {'match': {'query': q, 'boost': 4, 'type': 'phrase'},
+    rules = {'match_phrase': {'query': q, 'boost': 4},
              'fuzzy': {'value': q, 'boost': 2, 'prefix_length': 4},
              'startswith': {'value': q, 'boost': 1.5}}
     for k, v in rules.iteritems():
@@ -321,20 +321,17 @@ def name_query(q):
     # * Look for phrase matches inside the description using language
     #   specific analyzer (boost=0.1).
     # * Look for matches inside tags (boost=0.1).
-    more = dict(summary__match={'query': q, 'boost': 0.8, 'type': 'phrase'},
-                description__match={'query': q, 'boost': 0.3,
-                                    'type': 'phrase'},
+    more = dict(summary__match_phrase={'query': q, 'boost': 0.8},
+                description__match_phrase={'query': q, 'boost': 0.3},
                 tags__match={'query': q.split(), 'boost': 0.1})
 
     analyzer = get_locale_analyzer(translation.get_language())
     if analyzer:
-        more['summary_%s__match' % analyzer] = {'query': q,
+        more['summary_%s__match_phrase' % analyzer] = {'query': q,
                                                 'boost': 0.6,
-                                                'type': 'phrase',
                                                 'analyzer': analyzer}
-        more['description_%s__match' % analyzer] = {'query': q,
+        more['description_%s__match_phrase' % analyzer] = {'query': q,
                                                     'boost': 0.1,
-                                                    'type': 'phrase',
                                                     'analyzer': analyzer}
     return dict(more, **name_only_query(q))
 

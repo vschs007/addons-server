@@ -43,9 +43,9 @@ class TestQueryFilter(FilterTestsBase):
         should = (qs['query']['function_score']['query']['bool']['should'])
 
         expected = {
-            'match': {
+            'match_phrase': {
                 'name': {
-                    'query': 'tea pot', 'boost': 4, 'slop': 1, 'type': 'phrase'
+                    'query': 'tea pot', 'boost': 4, 'slop': 1
                 }
             }
         }
@@ -67,10 +67,10 @@ class TestQueryFilter(FilterTestsBase):
         assert expected in should
 
         expected = {
-            'match': {
+            'match_phrase': {
                 'description_english': {
                     'query': 'tea pot', 'boost': 0.6,
-                    'analyzer': 'english', 'type': 'phrase'
+                    'analyzer': 'english'
                 }
             }
         }
