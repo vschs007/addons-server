@@ -924,6 +924,8 @@ class ESTestCase(TestCase):
 
     @classmethod
     def empty_index(cls, index):
+        # Try to make sure that all changes are properly flushed.
+        cls.refresh()
         cls.es.delete_by_query(
             settings.ES_INDEXES[index],
             body={'query': {'match_all': {}}},
