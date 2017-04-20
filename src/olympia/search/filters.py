@@ -230,7 +230,7 @@ class SearchQueryFilter(BaseFilterBackend):
                                  'type': 'phrase'}),
             query.Match(description={'query': search_query, 'boost': 0.3,
                                      'type': 'phrase'}),
-            # query.Match(tags={'query': search_query.split(), 'boost': 0.1}),
+            query.Match(tags={'query': search_query.split(), 'boost': 0.1}),
         ]
 
         # For description and summary, also search in translated field with the
