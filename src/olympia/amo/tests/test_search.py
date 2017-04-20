@@ -50,27 +50,27 @@ class TestES(ESTestCaseWithAddons):
         # Doing a filter creates a new ES object.
         qs = Addon.search()
         qs2 = qs.filter(type=1)
-        assert 'filtered' not in qs._build_query()['query']
-        assert 'filtered' in qs2._build_query()['query']
+        assert 'bool' not in qs._build_query()['query']
+        assert 'filter' in qs2._build_query()['query']['bool']
 
     def test_filter(self):
         qs = Addon.search().filter(type=1)
-        assert qs._build_query()['query']['filtered']['filter'] == (
+        assert qs._build_query()['query']['bool']['filter'] == (
             [{'term': {'type': 1}}])
 
     def test_in_filter(self):
         qs = Addon.search().filter(type__in=[1, 2])
-        assert qs._build_query()['query']['filtered']['filter'] == (
+        assert qs._build_query()['query']['bool']['filter'] == (
             [{'in': {'type': [1, 2]}}])
 
     def test_and(self):
         qs = Addon.search().filter(type=1, category__in=[1, 2])
-        filters = qs._build_query()['query']['filtered']['filter']
+        filters = qs._build_query()['query']['bool']['filter']
         # Filters:
-        # {'and': [{'term': {'type': 1}}, {'in': {'category': [1, 2]}}]}
-        assert filters.keys() == ['and']
-        assert {'term': {'type': 1}} in filters['and']
-        assert {'in': {'category': [1, 2]}} in filters['and']
+        # [{'term': {'type': 1}}, {'in': {'category': [1, 2]}}]
+        assert len(filters) == 2
+        assert {'term': {'type': 1}} in filters
+        assert {'in': {'category': [1, 2]}} in filters
 
     def test_query(self):
         qs = Addon.search().query(type=1)
@@ -153,7 +153,7 @@ class TestES(ESTestCaseWithAddons):
 
     def test_filter_or(self):
         qs = Addon.search().filter(type=1).filter(or_=dict(status=1, app=2))
-        filters = qs._build_query()['query']['filtered']['filter']
+        filters = qs._build_query()['query']['bool']['filter']
         # Filters:
         # {'and': [
         #     {'term': {'type': 1}},
@@ -167,7 +167,7 @@ class TestES(ESTestCaseWithAddons):
         assert {'term': {'app': 2}} in or_clause['or']
 
         qs = Addon.search().filter(type=1, or_=dict(status=1, app=2))
-        filters = qs._build_query()['query']['filtered']['filter']
+        filters = qs._build_query()['query']['bool']['filter']
         # Filters:
         # {'and': [
         #     {'term': {'type': 1}},
@@ -212,7 +212,7 @@ class TestES(ESTestCaseWithAddons):
 
     def test_gte(self):
         qs = Addon.search().filter(type__in=[1, 2], status__gte=4)
-        filters = qs._build_query()['query']['filtered']['filter']
+        filters = qs._build_query()['query']['bool']['filter']
         # Filters:
         # {'and': [
         #     {'in': {'type': [1, 2]}},
@@ -224,7 +224,7 @@ class TestES(ESTestCaseWithAddons):
 
     def test_lte(self):
         qs = Addon.search().filter(type__in=[1, 2], status__lte=4)
-        filters = qs._build_query()['query']['filtered']['filter']
+        filters = qs._build_query()['query']['bool']['filter']
         # Filters:
         # {'and': [
         #     {'in': {'type': [1, 2]}},
@@ -236,7 +236,7 @@ class TestES(ESTestCaseWithAddons):
 
     def test_gt(self):
         qs = Addon.search().filter(type__in=[1, 2], status__gt=4)
-        filters = qs._build_query()['query']['filtered']['filter']
+        filters = qs._build_query()['query']['bool']['filter']
         # Filters:
         # {'and': [
         #     {'in': {'type': [1, 2]}},
@@ -248,7 +248,7 @@ class TestES(ESTestCaseWithAddons):
 
     def test_lt(self):
         qs = Addon.search().filter(type__in=[1, 2], status__lt=4)
-        filters = qs._build_query()['query']['filtered']['filter']
+        filters = qs._build_query()['query']['bool']['filter']
         # Filters:
         # {'and': [
         #     {'range': {'status': {'lt': 4}}},
@@ -260,12 +260,12 @@ class TestES(ESTestCaseWithAddons):
 
     def test_lt2(self):
         qs = Addon.search().filter(status__lt=4)
-        assert qs._build_query()['query']['filtered']['filter'] == (
+        assert qs._build_query()['query']['bool']['filter'] == (
             [{'range': {'status': {'lt': 4}}}])
 
     def test_range(self):
         qs = Addon.search().filter(date__range=('a', 'b'))
-        assert qs._build_query()['query']['filtered']['filter'] == (
+        assert qs._build_query()['query']['bool']['filter'] == (
             [{'range': {'date': {'gte': 'a', 'lte': 'b'}}}])
 
     def test_prefix(self):
@@ -342,28 +342,28 @@ class TestES(ESTestCaseWithAddons):
             {'term': {'type': 1}})
 
         qs = Addon.search().filter(status=1).extra(query={'type': 1})
-        filtered = qs._build_query()['query']['filtered']
+        filtered = qs._build_query()['query']['bool']['filter']
         assert filtered['query']['function_score']['query'] == (
             {'term': {'type': 1}})
         assert filtered['filter'] == [{'term': {'status': 1}}]
 
     def test_extra_filter(self):
         qs = Addon.search().extra(filter={'category__in': [1, 2]})
-        assert qs._build_query()['query']['filtered']['filter'] == (
+        assert qs._build_query()['query']['bool']['filter'] == (
             [{'in': {'category': [1, 2]}}])
 
         qs = (Addon.search().filter(type=1)
               .extra(filter={'category__in': [1, 2]}))
-        filters = qs._build_query()['query']['filtered']['filter']
+        filters = qs._build_query()['query']['bool']['filter']
         # Filters:
-        # {'and': [{'term': {'type': 1}}, {'in': {'category': [1, 2]}}, ]}
-        assert filters.keys() == ['and']
-        assert {'term': {'type': 1}} in filters['and']
-        assert {'in': {'category': [1, 2]}} in filters['and']
+        # [{'term': {'type': 1}}, {'in': {'category': [1, 2]}}]
+        assert len(filters) == 2
+        assert {'term': {'type': 1}} in filters
+        assert {'in': {'category': [1, 2]}} in filters
 
     def test_extra_filter_or(self):
         qs = Addon.search().extra(filter={'or_': {'status': 1, 'app': 2}})
-        filters = qs._build_query()['query']['filtered']['filter']
+        filters = qs._build_query()['query']['bool']['filter']
         # Filters:
         # [{'or': [{'term': {'status': 1}}, {'term': {'app': 2}}]}])
         assert len(filters) == 1
@@ -373,13 +373,13 @@ class TestES(ESTestCaseWithAddons):
 
         qs = (Addon.search().filter(type=1)
               .extra(filter={'or_': {'status': 1, 'app': 2}}))
-        filters = qs._build_query()['query']['filtered']['filter']
+        filters = qs._build_query()['query']['bool']['filter']
         # Filters:
-        # {'and': [{'term': {'type': 1}},
-        #          {'or': [{'term': {'status': 1}}, {'term': {'app': 2}}]}]})
-        assert filters.keys() == ['and']
-        assert {'term': {'type': 1}} in filters['and']
-        or_clause = sorted(filters['and'])[0]
+        # [{'term': {'type': 1}},
+        #  {'or': [{'term': {'status': 1}}, {'term': {'app': 2}}]}]
+        assert len(filters) == 2
+        assert {'term': {'type': 1}} in filters
+        or_clause = sorted(filters)[0]
         assert or_clause.keys() == ['or']
         assert {'term': {'status': 1}} in or_clause['or']
         assert {'term': {'app': 2}} in or_clause['or']
