@@ -327,12 +327,14 @@ def name_query(q):
 
     analyzer = get_locale_analyzer(translation.get_language())
     if analyzer:
-        more['summary_%s__match_phrase' % analyzer] = {'query': q,
-                                                'boost': 0.6,
-                                                'analyzer': analyzer}
-        more['description_%s__match_phrase' % analyzer] = {'query': q,
-                                                    'boost': 0.1,
-                                                    'analyzer': analyzer}
+        more['summary_%s__match_phrase' % analyzer] = {
+            'query': q,
+            'boost': 0.6,
+            'analyzer': analyzer}
+        more['description_%s__match_phrase' % analyzer] = {
+            'query': q,
+            'boost': 0.1,
+            'analyzer': analyzer}
     return dict(more, **name_only_query(q))
 
 
