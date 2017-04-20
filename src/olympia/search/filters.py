@@ -188,12 +188,14 @@ class SearchQueryFilter(BaseFilterBackend):
         """
         should = []
         rules = [
-            (query.Match, {'query': search_query, 'boost': 3,
-                           'analyzer': 'standard'}),
-            (query.Match, {'query': search_query, 'boost': 4,
-                           'type': 'phrase',
-                           'slop': 1}),
-            (query.Prefix, {'value': search_query, 'boost': 1.5}),
+            (query.Match, {
+                'query': search_query, 'boost': 3,
+                'analyzer': 'standard'}),
+            (query.MatchPhrase, {
+                'query': search_query, 'boost': 4,
+                'slop': 1}),
+            (query.Prefix, {
+                'value': search_query, 'boost': 1.5}),
         ]
 
         # Only add fuzzy queries if the search query is a single word.
@@ -226,10 +228,9 @@ class SearchQueryFilter(BaseFilterBackend):
         containing more text like description, summary and tags.
         """
         should = [
-            query.Match(summary={'query': search_query, 'boost': 0.8,
-                                 'type': 'phrase'}),
-            query.Match(description={'query': search_query, 'boost': 0.3,
-                                     'type': 'phrase'}),
+            query.MatchPhrase(summary={'query': search_query, 'boost': 0.8}),
+            query.MatchPhrase(description={
+                'query': search_query, 'boost': 0.3}),
             query.Match(tags={'query': search_query.split(), 'boost': 0.1}),
         ]
 
@@ -237,11 +238,11 @@ class SearchQueryFilter(BaseFilterBackend):
         # right language and analyzer.
         if analyzer:
             should.extend([
-                query.Match(**{'summary_%s' % analyzer: {
-                    'query': search_query, 'boost': 0.6, 'type': 'phrase',
+                query.MatchPhrase(**{'summary_%s' % analyzer: {
+                    'query': search_query, 'boost': 0.6,
                     'analyzer': analyzer}}),
-                query.Match(**{'description_%s' % analyzer: {
-                    'query': search_query, 'boost': 0.6, 'type': 'phrase',
+                query.MatchPhrase(**{'description_%s' % analyzer: {
+                    'query': search_query, 'boost': 0.6,
                     'analyzer': analyzer}})
             ])
 
@@ -268,8 +269,10 @@ class SearchQueryFilter(BaseFilterBackend):
         ]
 
         # Assemble everything together and return the search "queryset".
-        return qs.query('function_score', query=query.Bool(
-            should=primary_should + secondary_should), functions=functions)
+        return qs.query(
+            'function_score',
+            query=query.Bool(should=primary_should + secondary_should),
+            functions=functions)
 
 
 class SearchParameterFilter(BaseFilterBackend):
