@@ -304,7 +304,7 @@ class ListSearchResults(SearchResults):
         # When fields are specified in `values(...)` we return the fields.
         objs = []
         for hit in hits:
-            objs.append(tuple(v for v in hit[key].values()))
+            objs.append(tuple(v for v in hit['_source'].values()))
 
         self.objects = objs
 
