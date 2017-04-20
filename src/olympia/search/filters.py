@@ -231,8 +231,12 @@ class SearchQueryFilter(BaseFilterBackend):
             query.MatchPhrase(summary={'query': search_query, 'boost': 0.8}),
             query.MatchPhrase(description={
                 'query': search_query, 'boost': 0.3}),
-            query.Match(tags={'query': search_query.split(), 'boost': 0.1}),
         ]
+
+        # TODO ES5: This isn't really tested and I'm unsure if the change
+        # actually does what we want it to...
+        for tag in search_query.split():
+            should.append(query.Match(tags={'query': tag, 'boost': 0.1}))
 
         # For description and summary, also search in translated field with the
         # right language and analyzer.
