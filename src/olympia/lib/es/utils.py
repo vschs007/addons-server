@@ -102,8 +102,6 @@ def create_index(index, config=None):
     })
 
     if not es.indices.exists(index):
-        print('does not exist, actually create!')
         es.indices.create(index, body=config)
-        print('created....', index)
 
     return index

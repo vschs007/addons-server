@@ -873,7 +873,6 @@ class ESTestCase(TestCase):
 
         for key in aliases_and_indexes:
             if key.startswith('test_amo'):
-                print('delete index', key)
                 cls.es.indices.delete(key, ignore=[404])
 
         # Figure out the name of the indices we're going to create from the
@@ -886,11 +885,9 @@ class ESTestCase(TestCase):
         # Create new search and stats indexes with the timestamped name.
         # This is crucial to set up the correct mappings before we start
         # indexing things in tests.
-        print('create new indices')
         search_indexers.create_new_index(index_name=actual_indices['default'])
         stats_search.create_new_index(index_name=actual_indices['stats'])
 
-        print('created...')
 
         # Alias it to the name the code is going to use (which is suffixed by
         # pytest to avoid clashing with the real thing).
