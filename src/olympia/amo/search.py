@@ -118,7 +118,7 @@ class ES(object):
                 as_list, as_dict = True, False
             elif action == 'values_dict':
                 if not value:
-                    source = ['id']
+                    source = ['*']
                 else:
                     source.extend(value)
                 as_list, as_dict = False, True
