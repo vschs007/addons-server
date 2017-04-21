@@ -150,9 +150,6 @@ class ES(object):
         }
 
         if filters:
-            if len(filters) > 1:
-                filters = [filters]
-
             qs = {
                 "bool": {
                     "must": qs,
