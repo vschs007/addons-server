@@ -321,9 +321,15 @@ def name_query(q):
     # * Look for phrase matches inside the description using language
     #   specific analyzer (boost=0.1).
     # * Look for matches inside tags (boost=0.1).
+
+    tag_should = []
+
+    for tag in q.split():
+        tag_should.append({'match': {'tags': {'query': tag, 'boost': 0.1}}})
+
     more = dict(summary__match_phrase={'query': q, 'boost': 0.8},
                 description__match_phrase={'query': q, 'boost': 0.3},
-                tags__match={'query': q.split(), 'boost': 0.1})
+                tags__or=tag_should)
 
     analyzer = get_locale_analyzer(translation.get_language())
     if analyzer:
