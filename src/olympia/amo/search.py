@@ -202,7 +202,7 @@ class ES(object):
                 from_, to = val
                 rv.append({'range': {key: {'gte': from_, 'lte': to}}})
         if or_:
-            rv.append({'or': self._process_filters(or_.items())})
+            rv.append({'should': self._process_filters(or_.items())})
         return rv
 
     def _process_queries(self, value):

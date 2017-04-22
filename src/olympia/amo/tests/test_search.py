@@ -352,7 +352,7 @@ class TestES(ESTestCaseWithAddons):
 
         qs = (Addon.search().filter(type=1)
               .extra(filter={'category__in': [1, 2]}))
-        filters = qs._build_query()['query']['bool']['filter']
+        filters = qs._build_query()['query']['bool']['filter']['bool']['must']
         # Filters:
         # [{'term': {'type': 1}}, {'in': {'category': [1, 2]}}]
         assert len(filters) == 2
@@ -361,26 +361,27 @@ class TestES(ESTestCaseWithAddons):
 
     def test_extra_filter_or(self):
         qs = Addon.search().extra(filter={'or_': {'status': 1, 'app': 2}})
-        filters = qs._build_query()['query']['bool']['filter']
+        filters = qs._build_query()['query']['bool']['filter'][0]
         # Filters:
-        # [{'or': [{'term': {'status': 1}}, {'term': {'app': 2}}]}])
-        assert len(filters) == 1
-        assert filters[0].keys() == ['or']
-        assert {'term': {'status': 1}} in filters[0]['or']
-        assert {'term': {'app': 2}} in filters[0]['or']
+        # [{'should': [{'term': {'status': 1}}, {'term': {'app': 2}}]}]
+        assert len(filters['should']) == 2
+        assert {'term': {'status': 1}} in filters['should']
+        assert {'term': {'app': 2}} in filters['should']
 
         qs = (Addon.search().filter(type=1)
               .extra(filter={'or_': {'status': 1, 'app': 2}}))
-        filters = qs._build_query()['query']['bool']['filter']
+
+        filters = qs._build_query()['query']['bool']['filter']['bool']['must']
+
         # Filters:
         # [{'term': {'type': 1}},
-        #  {'or': [{'term': {'status': 1}}, {'term': {'app': 2}}]}]
+        #  {'should': [{'term': {'status': 1}}, {'term': {'app': 2}}]}]
         assert len(filters) == 2
         assert {'term': {'type': 1}} in filters
-        or_clause = sorted(filters)[0]
-        assert or_clause.keys() == ['or']
-        assert {'term': {'status': 1}} in or_clause['or']
-        assert {'term': {'app': 2}} in or_clause['or']
+        should_clause = sorted(filters)[0]
+        assert should_clause.keys() == ['should']
+        assert {'term': {'status': 1}} in should_clause['should']
+        assert {'term': {'app': 2}} in should_clause['should']
 
     def test_source(self):
         qs = Addon.search().source('versions')
