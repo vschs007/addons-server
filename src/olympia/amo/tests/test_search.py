@@ -65,7 +65,7 @@ class TestES(ESTestCaseWithAddons):
 
     def test_and(self):
         qs = Addon.search().filter(type=1, category__in=[1, 2])
-        filters = qs._build_query()['query']['bool']['filter']
+        filters = qs._build_query()['query']['bool']['filter']['bool']['must']
         # Filters:
         # [{'term': {'type': 1}}, {'in': {'category': [1, 2]}}]
         assert len(filters) == 2
