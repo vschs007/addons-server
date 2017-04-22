@@ -153,7 +153,7 @@ class TestES(ESTestCaseWithAddons):
 
     def test_filter_or(self):
         qs = Addon.search().filter(type=1).filter(or_=dict(status=1, app=2))
-        filters = qs._build_query()['query']['bool']['filter']
+        filters = qs._build_query()['query']['bool']['filter']['bool']
         # Filters:
         # {'must': [
         #     {'term': {'type': 1}},
@@ -161,24 +161,24 @@ class TestES(ESTestCaseWithAddons):
         # ]}
         assert filters.keys() == ['must']
         assert {'term': {'type': 1}} in filters['must']
-        or_clause = sorted(filters['and'])[0]
-        assert or_clause.keys() == ['or']
-        assert {'term': {'status': 1}} in or_clause['or']
-        assert {'term': {'app': 2}} in or_clause['or']
+        should_clause = sorted(filters['must'])[0]
+        assert should_clause.keys() == ['should']
+        assert {'term': {'status': 1}} in should_clause['should']
+        assert {'term': {'app': 2}} in should_clause['should']
 
         qs = Addon.search().filter(type=1, or_=dict(status=1, app=2))
-        filters = qs._build_query()['query']['bool']['filter']
+        filters = qs._build_query()['query']['bool']['filter']['bool']
         # Filters:
         # {'and': [
         #     {'term': {'type': 1}},
         #     {'or': [{'term': {'status': 1}}, {'term': {'app': 2}}]},
         # ]}
-        assert filters.keys() == ['and']
-        assert {'term': {'type': 1}} in filters['and']
-        or_clause = sorted(filters['and'])[0]
-        assert or_clause.keys() == ['or']
-        assert {'term': {'status': 1}} in or_clause['or']
-        assert {'term': {'app': 2}} in or_clause['or']
+        assert filters.keys() == ['must']
+        assert {'term': {'type': 1}} in filters['must']
+        should_clause = sorted(filters['must'])[0]
+        assert should_clause.keys() == ['should']
+        assert {'term': {'status': 1}} in should_clause['should']
+        assert {'term': {'app': 2}} in should_clause['should']
 
     def test_slice_stop(self):
         qs = Addon.search()[:6]
@@ -212,51 +212,51 @@ class TestES(ESTestCaseWithAddons):
 
     def test_gte(self):
         qs = Addon.search().filter(type__in=[1, 2], status__gte=4)
-        filters = qs._build_query()['query']['bool']['filter']
+        filters = qs._build_query()['query']['bool']['filter']['bool']
         # Filters:
         # {'and': [
         #     {'in': {'type': [1, 2]}},
         #     {'range': {'status': {'gte': 4}}},
         # ]}
-        assert filters.keys() == ['and']
-        assert {'in': {'type': [1, 2]}} in filters['and']
-        assert {'range': {'status': {'gte': 4}}} in filters['and']
+        assert filters.keys() == ['must']
+        assert {'in': {'type': [1, 2]}} in filters['must']
+        assert {'range': {'status': {'gte': 4}}} in filters['must']
 
     def test_lte(self):
         qs = Addon.search().filter(type__in=[1, 2], status__lte=4)
-        filters = qs._build_query()['query']['bool']['filter']
+        filters = qs._build_query()['query']['bool']['filter']['bool']
         # Filters:
         # {'and': [
         #     {'in': {'type': [1, 2]}},
         #     {'range': {'status': {'lte': 4}}},
         # ]}
-        assert filters.keys() == ['and']
-        assert {'in': {'type': [1, 2]}} in filters['and']
-        assert {'range': {'status': {'lte': 4}}} in filters['and']
+        assert filters.keys() == ['must']
+        assert {'in': {'type': [1, 2]}} in filters['must']
+        assert {'range': {'status': {'lte': 4}}} in filters['must']
 
     def test_gt(self):
         qs = Addon.search().filter(type__in=[1, 2], status__gt=4)
-        filters = qs._build_query()['query']['bool']['filter']
+        filters = qs._build_query()['query']['bool']['filter']['bool']
         # Filters:
         # {'and': [
         #     {'in': {'type': [1, 2]}},
         #     {'range': {'status': {'gt': 4}}},
         # ]}
-        assert filters.keys() == ['and']
-        assert {'in': {'type': [1, 2]}} in filters['and']
-        assert {'range': {'status': {'gt': 4}}} in filters['and']
+        assert filters.keys() == ['must']
+        assert {'in': {'type': [1, 2]}} in filters['must']
+        assert {'range': {'status': {'gt': 4}}} in filters['must']
 
     def test_lt(self):
         qs = Addon.search().filter(type__in=[1, 2], status__lt=4)
-        filters = qs._build_query()['query']['bool']['filter']
+        filters = qs._build_query()['query']['bool']['filter']['bool']
         # Filters:
         # {'and': [
         #     {'range': {'status': {'lt': 4}}},
         #     {'in': {'type': [1, 2]}},
         # ]}
-        assert filters.keys() == ['and']
-        assert {'range': {'status': {'lt': 4}}} in filters['and']
-        assert {'in': {'type': [1, 2]}} in filters['and']
+        assert filters.keys() == ['must']
+        assert {'range': {'status': {'lt': 4}}} in filters['must']
+        assert {'in': {'type': [1, 2]}} in filters['must']
 
     def test_lt2(self):
         qs = Addon.search().filter(status__lt=4)
@@ -278,7 +278,7 @@ class TestES(ESTestCaseWithAddons):
         assert qs._build_query()['_source'] == ['id', 'name']
 
     def test_values_result(self):
-        addons = [{'id': [a.id], 'slug': [a.slug]} for a in self._addons]
+        addons = [{'id': a.id, 'slug': a.slug} for a in self._addons]
         qs = Addon.search().values_dict('slug').order_by('id')
         assert list(qs) == addons
 
@@ -291,7 +291,7 @@ class TestES(ESTestCaseWithAddons):
         assert qs._build_query()['_source'] == ['id']
 
     def test_values_dict_result(self):
-        addons = [{'id': [a.id], 'slug': [a.slug]} for a in self._addons]
+        addons = [{'id': a.id, 'slug': a.slug} for a in self._addons]
         qs = Addon.search().values_dict('slug').order_by('id')
         assert list(qs) == list(addons)
 
@@ -385,7 +385,7 @@ class TestES(ESTestCaseWithAddons):
 
     def test_source(self):
         qs = Addon.search().source('versions')
-        assert qs._build_query()['_source'] == ['versions']
+        assert qs._build_query()['_source'] == ['id', 'versions']
 
     def test_aggregations(self):
         Tag(tag_text='sky').save_tag(self._addons[0])
