@@ -1,4 +1,5 @@
 import os
+import json
 
 from django.conf import settings as dj_settings
 
@@ -247,11 +248,10 @@ class ES(object):
                     doc_type=self.type._meta.db_table
                 )
         except Exception:
-            import json
             log.error(json.dumps(build_body))
             raise
         statsd.timing('search.es.took', hits['took'])
-        log.debug('[%s] [%s] %s' % (hits['took'], timer.ms, build_body))
+        log.debug('[%s] [%s] %s' % (hits['took'], timer.ms, json.dumps(build_body)))
         return hits
 
     def __iter__(self):
