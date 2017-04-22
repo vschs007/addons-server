@@ -155,12 +155,12 @@ class TestES(ESTestCaseWithAddons):
         qs = Addon.search().filter(type=1).filter(or_=dict(status=1, app=2))
         filters = qs._build_query()['query']['bool']['filter']
         # Filters:
-        # {'and': [
+        # {'must': [
         #     {'term': {'type': 1}},
-        #     {'or': [{'term': {'status': 1}}, {'term': {'app': 2}}]},
+        #     {'should': [{'term': {'status': 1}}, {'term': {'app': 2}}]},
         # ]}
-        assert filters.keys() == ['and']
-        assert {'term': {'type': 1}} in filters['and']
+        assert filters.keys() == ['must']
+        assert {'term': {'type': 1}} in filters['must']
         or_clause = sorted(filters['and'])[0]
         assert or_clause.keys() == ['or']
         assert {'term': {'status': 1}} in or_clause['or']
@@ -275,7 +275,7 @@ class TestES(ESTestCaseWithAddons):
 
     def test_values(self):
         qs = Addon.search().values('name')
-        assert qs._build_query()['fields'] == ['id', 'name']
+        assert qs._build_query()['_source'] == ['id', 'name']
 
     def test_values_result(self):
         addons = [{'id': [a.id], 'slug': [a.slug]} for a in self._addons]
@@ -284,11 +284,11 @@ class TestES(ESTestCaseWithAddons):
 
     def test_values_dict(self):
         qs = Addon.search().values_dict('name')
-        assert qs._build_query()['fields'] == ['id', 'name']
+        assert qs._build_query()['_source'] == ['id', 'name']
 
     def test_empty_values_dict(self):
         qs = Addon.search().values_dict()
-        assert 'fields' not in qs._build_query()
+        assert qs._build_query()['_source'] == ['id']
 
     def test_values_dict_result(self):
         addons = [{'id': [a.id], 'slug': [a.slug]} for a in self._addons]
@@ -297,9 +297,7 @@ class TestES(ESTestCaseWithAddons):
 
     def test_empty_values_dict_result(self):
         qs = Addon.search().values_dict()
-        # Look for some of the keys we expect.
-        for key in ('id', 'name', 'status', 'app'):
-            assert key in qs[0].keys(), qs[0].keys()
+        assert qs[0].keys() == ['id']
 
     def test_object_result(self):
         qs = Addon.search().filter(id=self._addons[0].id)[:1]
@@ -316,17 +314,17 @@ class TestES(ESTestCaseWithAddons):
 
     def test_extra_values(self):
         qs = Addon.search().extra(values=['name'])
-        assert qs._build_query()['fields'] == ['id', 'name']
+        assert qs._build_query()['_source'] == ['id', 'name']
 
         qs = Addon.search().values('status').extra(values=['name'])
-        assert qs._build_query()['fields'] == ['id', 'status', 'name']
+        assert qs._build_query()['_source'] == ['id', 'status', 'name']
 
     def test_extra_values_dict(self):
         qs = Addon.search().extra(values_dict=['name'])
-        assert qs._build_query()['fields'] == ['id', 'name']
+        assert qs._build_query()['_source'] == ['id', 'name']
 
         qs = Addon.search().values_dict('status').extra(values_dict=['name'])
-        assert qs._build_query()['fields'] == ['id', 'status', 'name']
+        assert qs._build_query()['_source'] == ['id', 'status', 'name']
 
     def test_extra_order_by(self):
         qs = Addon.search().extra(order_by=['-rating'])
@@ -342,8 +340,8 @@ class TestES(ESTestCaseWithAddons):
             {'term': {'type': 1}})
 
         qs = Addon.search().filter(status=1).extra(query={'type': 1})
-        filtered = qs._build_query()['query']['bool']['filter']
-        assert filtered['query']['function_score']['query'] == (
+        filtered = qs._build_query()['query']['bool']
+        assert filtered['must']['function_score']['query'] == (
             {'term': {'type': 1}})
         assert filtered['filter'] == [{'term': {'status': 1}}]
 
