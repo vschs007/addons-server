@@ -844,6 +844,7 @@ class ESTestCase(TestCase):
 
     def setUp(self):
         stop_es_mocks()
+        super(ESTestCase, self).setUp()
 
     @classmethod
     def setUpClass(cls):
