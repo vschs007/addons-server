@@ -731,7 +731,9 @@ class TestPersonaSearch(SearchBase):
             self.check_name_results({'q': term}, [p1.pk])
 
         # Try to match 'The Life Aquatic with SeaVan'.
-        for term in ('life', 'aquatic', 'seavan', 'sea van'):
+        # We have prefix_length=4 so fuzziness matching starts
+        # at the 4th character for performance reasons.
+        for term in ('life', 'aquatic', 'seavan', 'seav an'):
             self.check_name_results({'q': term}, [p2.pk])
 
     def test_results_popularity(self):
