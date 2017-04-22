@@ -253,10 +253,10 @@ class ES(object):
                     doc_type=self.type._meta.db_table
                 )
         except Exception:
-            log.error(json.dumps(build_body))
+            log.error(build_body)
             raise
         statsd.timing('search.es.took', hits['took'])
-        log.debug('[%s] [%s] %s' % (hits['took'], timer.ms, json.dumps(build_body)))
+        log.debug('[%s] [%s] %s' % (hits['took'], timer.ms, build_body))
         return hits
 
     def __iter__(self):
