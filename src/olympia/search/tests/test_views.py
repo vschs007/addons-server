@@ -621,6 +621,7 @@ class TestESSearch(SearchBase):
 
         a.save()
         self.refresh()
+
         r = self.client.get(self.url, dict(q=tag_name))
         assert self.get_results(r) == [a.id]
 

@@ -208,7 +208,9 @@ class ES(object):
     def _process_queries(self, value):
         rv = []
         value = dict(value)
-        or_ = value.pop('or_', [])
+        or_ = value.pop('or_', {})
+        extend = value.pop('extend_', [])
+
         for key, val in value.items():
             key, field_action = self._split(key)
             if field_action is None:
@@ -223,6 +225,9 @@ class ES(object):
                 rv.append({'fuzzy': {key: val}})
         if or_:
             rv.append({'bool': {'should': self._process_queries(or_.items())}})
+        if extend:
+            rv.extend(extend)
+
         return rv
 
     def _do_search(self):
