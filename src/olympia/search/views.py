@@ -329,7 +329,7 @@ def name_query(q):
 
     more = dict(summary__match_phrase={'query': q, 'boost': 0.8},
                 description__match_phrase={'query': q, 'boost': 0.3},
-                extend_=[tag_should])
+                extend_=tag_should)
 
     analyzer = get_locale_analyzer(translation.get_language())
     if analyzer:
