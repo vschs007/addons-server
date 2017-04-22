@@ -102,7 +102,7 @@ class SearchBase(ESTestCaseWithAddons):
         r = self.client.get(urlparams(self.url, **params), follow=True)
         assert r.status_code == 200
         got = self.get_results(r)
-        assert got == expected
+        assert got == expected, params
 
     def check_appver_platform_ignored(self, expected):
         # Collection results should not filter on `appver` nor `platform`.
