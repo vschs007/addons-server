@@ -117,9 +117,7 @@ class ES(object):
                 source.extend(value)
                 as_list, as_dict = True, False
             elif action == 'values_dict':
-                if not value:
-                    source = ['*']
-                else:
+                if value:
                     source.extend(value)
                 as_list, as_dict = False, True
             elif action == 'query':
@@ -150,6 +148,9 @@ class ES(object):
         }
 
         if filters:
+            if len(filters) > 1:
+                filters = {'bool': {'must': filters}}
+
             qs = {
                 "bool": {
                     "must": qs,
@@ -246,7 +247,8 @@ class ES(object):
                     doc_type=self.type._meta.db_table
                 )
         except Exception:
-            log.error(build_body)
+            import json
+            log.error(json.dumps(build_body))
             raise
         statsd.timing('search.es.took', hits['took'])
         log.debug('[%s] [%s] %s' % (hits['took'], timer.ms, build_body))
